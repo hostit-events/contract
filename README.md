@@ -1,67 +1,86 @@
-## Foundry
+# 💎 Diamond Template
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+A modular, upgradeable smart contract framework built using the [EIP-2535 Diamond Standard](https://eips.ethereum.org/EIPS/eip-2535). This template provides a clean foundation for building composable and gas-efficient smart contracts with facet-based architecture.
 
-Foundry consists of:
+---
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+## 📦 Features
 
-## Documentation
+- ⚙️ **Facets**: Modular smart contract logic components
+- 🔁 **Upgradeable**: Add, replace, or remove functions at runtime
+- 🧪 **Foundry test suite**: Includes deployment and mutation tests
+- 🔍 **Loupe Functions**: Introspect facet addresses and selectors
+- 👑 **Role-based Access Control** via `OwnableRolesFacet`
+- 📚 **ERC165 Interface Support**
+- 🚀 **Automated Deploy Script**
 
-https://book.getfoundry.sh/
+---
 
-## Usage
+## 🛠️ Project Structure
 
-### Build
-
-```shell
-$ forge build
+```bash
+.
+├── src/
+│   ├── Diamond.sol                 # Diamond core contract
+│   ├── facets/                    # All facets (logic modules)
+│   ├── initializer/               # Initializer for setting up ERC165 and others
+│   ├── interfaces/                # Diamond-compliant interfaces (e.g. IDiamondCut)
+│   ├── libraries/                 # DiamondStorage, LibDiamond, etc.
+│   └── scripts/DeployDiamond.s.sol # Foundry deployment script
+│
+├── test/
+│   ├── DiamondTest.t.sol          # Tests for core diamond behavior
+│   └── helpers/                   # Reusable test helpers and states
+│
+└── foundry.toml                   # Foundry config
 ```
 
-### Test
+## 🚀 Getting Started
 
-```shell
-$ forge test
+1. Install Dependencies
+
+```bash
+forge install
 ```
 
-### Format
+2. Compile
 
-```shell
-$ forge fmt
+```bash
+forge build
 ```
 
-### Gas Snapshots
+3. Run Tests
 
-```shell
-$ forge snapshot
+```bash
+forge test --ffi -vvv
 ```
 
-### Anvil
+4. Deploy Locally
 
-```shell
-$ anvil
+```bash
+forge script script/DeployDiamond.s.sol --fork-url <RPC_URL> --broadcast
 ```
 
-### Deploy
+## 🧩 Facets Included
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
+| Facet             | Purpose                              |
+|-------------------|------------------------------------|
+| DiamondCutFacet    | Adds/replaces/removes functions     |
+| DiamondLoupeFacet  | View functions for facets/selectors |
+| OwnableRolesFacet  | Ownership & role-based access       |
 
-### Cast
+---
 
-```shell
-$ cast <subcommand>
-```
+## 📘 References
 
-### Help
+- [EIP-2535 Diamond Standard](https://eips.ethereum.org/EIPS/eip-2535)
+- [Nick Mudge’s Diamond Book](https://github.com/mudgen/diamond-3-hardhat)
 
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
-# erc2535-diamond-template
+---
+
+## 🧠 License
+
+MIT © 2025  
+Built with ♥ by David Dada
+
+---
