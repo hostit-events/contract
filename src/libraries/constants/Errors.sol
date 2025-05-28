@@ -5,6 +5,9 @@ pragma solidity ^0.8.4;
 //                           DIAMOND LIBRARY ERRORS
 //////////////////////////////////////////////////////////////////////////*//
 
+/// @notice Thrown when a diamond cut is attempted with no facets specified
+error NoFacetsInDiamondCut();
+
 /// @notice Thrown when attempting a diamond cut with no function selectors specified to add
 error NoSelectorsGivenToAdd();
 

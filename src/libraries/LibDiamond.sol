@@ -12,6 +12,7 @@ import {
     IncorrectFacetCutAction,
     InitializationFunctionReverted,
     NoBytecodeAtAddress,
+    NoFacetsInDiamondCut,
     NoSelectorsGivenToAdd,
     NoSelectorsProvidedForFacetForCut,
     RemoveFacetAddressMustBeZeroAddress
@@ -82,7 +83,9 @@ library LibDiamond {
     /// @param _init The address of the contract or facet to execute `data`.
     /// @param _calldata A function call, including function selector and arguments.
     function _diamondCut(FacetCut[] memory _facetCuts, address _init, bytes memory _calldata) internal {
-        for (uint256 facetIndex; facetIndex < _facetCuts.length; facetIndex++) {
+        uint256 facetCutsLength = _facetCuts.length;
+        require(facetCutsLength > 0, NoFacetsInDiamondCut());
+        for (uint256 facetIndex; facetIndex < facetCutsLength; facetIndex++) {
             FacetCutAction action = _facetCuts[facetIndex].action;
             if (action == FacetCutAction.Add) {
                 _addFunctions(_facetCuts[facetIndex].facetAddress, _facetCuts[facetIndex].functionSelectors);
@@ -102,7 +105,8 @@ library LibDiamond {
     /// @param _facetAddress The address of the facet to add functions to.
     /// @param _functionSelectors The function selectors to add to the facet.
     function _addFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal {
-        require(_functionSelectors.length > 0, NoSelectorsGivenToAdd());
+        uint256 functionSelectorsLength = _functionSelectors.length;
+        require(functionSelectorsLength > 0, NoSelectorsGivenToAdd());
         require(_facetAddress != address(0), CannotAddSelectorsToZeroAddress(_functionSelectors));
         DiamondStorage storage ds = diamondStorage();
         uint96 selectorPosition = uint96(ds.facetToSelectorsAndPosition[_facetAddress].functionSelectors.length);
@@ -110,7 +114,7 @@ library LibDiamond {
         if (selectorPosition == 0) {
             _addFacet(ds, _facetAddress);
         }
-        for (uint256 selectorIndex; selectorIndex < _functionSelectors.length;) {
+        for (uint256 selectorIndex; selectorIndex < functionSelectorsLength;) {
             bytes4 selector = _functionSelectors[selectorIndex];
             address oldFacetAddress = ds.selectorToFacetAndPosition[selector].facetAddress;
             require(oldFacetAddress == address(0), CannotAddFunctionToDiamondThatAlreadyExists(selector));
@@ -126,7 +130,8 @@ library LibDiamond {
     /// @param _facetAddress The address of the facet to replace functions from.
     /// @param _functionSelectors The function selectors to replace in the facet.
     function _replaceFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal {
-        require(_functionSelectors.length > 0, NoSelectorsGivenToAdd());
+        uint256 functionSelectorsLength = _functionSelectors.length;
+        require(functionSelectorsLength > 0, NoSelectorsGivenToAdd());
         require(_facetAddress != address(0), CannotAddSelectorsToZeroAddress(_functionSelectors));
         DiamondStorage storage ds = diamondStorage();
         uint96 selectorPosition = uint96(ds.facetToSelectorsAndPosition[_facetAddress].functionSelectors.length);
@@ -134,7 +139,7 @@ library LibDiamond {
         if (selectorPosition == 0) {
             _addFacet(ds, _facetAddress);
         }
-        for (uint256 selectorIndex; selectorIndex < _functionSelectors.length;) {
+        for (uint256 selectorIndex; selectorIndex < functionSelectorsLength;) {
             bytes4 selector = _functionSelectors[selectorIndex];
             address oldFacetAddress = ds.selectorToFacetAndPosition[selector].facetAddress;
             require(
@@ -153,10 +158,11 @@ library LibDiamond {
     /// @param _facetAddress The address of the facet to remove functions from.
     /// @param _functionSelectors The function selectors to remove from the facet.
     function _removeFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal {
+        uint256 functionSelectorsLength = _functionSelectors.length;
         require(_facetAddress == address(0), RemoveFacetAddressMustBeZeroAddress(_facetAddress));
-        require(_functionSelectors.length > 0, NoSelectorsProvidedForFacetForCut(_facetAddress));
+        require(functionSelectorsLength > 0, NoSelectorsProvidedForFacetForCut(_facetAddress));
         DiamondStorage storage ds = diamondStorage();
-        for (uint256 selectorIndex; selectorIndex < _functionSelectors.length;) {
+        for (uint256 selectorIndex; selectorIndex < functionSelectorsLength;) {
             bytes4 selector = _functionSelectors[selectorIndex];
             address oldFacetAddress = ds.selectorToFacetAndPosition[selector].facetAddress;
             _removeFunction(ds, oldFacetAddress, selector);
