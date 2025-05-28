@@ -16,7 +16,7 @@ contract Diamond {
     /// @notice Initializes the Diamond proxy with the provided facets and initialization parameters
     /// @param _diamondCut Array of FacetCut structs defining facet addresses, corresponding function selectors, and actions (Add, Replace, Remove)
     /// @param _args Struct containing the initial owner address, optional init contract address, and init calldata
-    constructor(FacetCut[] memory _diamondCut, DiamondArgs memory _args) {
+    constructor(FacetCut[] memory _diamondCut, DiamondArgs memory _args) payable {
         LibOwnableRoles._initializeOwner(_args.owner);
         LibDiamond._diamondCut(_diamondCut, _args.init, _args.initData);
     }
