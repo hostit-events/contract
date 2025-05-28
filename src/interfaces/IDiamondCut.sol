@@ -10,5 +10,5 @@ interface IDiamondCut {
     /// @param _init The address of the contract or facet to execute `data`
     /// @param _data A function call, including function selector and arguments
     ///             `data` is executed with delegatecall on `init`
-    function diamondCut(FacetCut[] calldata _diamondCut, address _init, bytes calldata _data) external;
+    function diamondCut(FacetCut[] calldata _diamondCut, address _init, bytes calldata _data) external payable;
 }
