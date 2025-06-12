@@ -8,10 +8,10 @@ import {IDiamondLoupe} from "@diamond/interfaces/IDiamondLoupe.sol";
 import {Facet} from "@diamond/libraries/constants/Types.sol";
 import {DeployedDiamondState} from "./helpers/TestStates.sol";
 
-/// @title DiamondTest
+/// @title DiamondTester
 /// @notice Contains test cases to validate the deployment and structure of the Diamond contract.
 /// @dev Inherits setup and state from DeployedDiamondState to interact with the deployed diamond.
-contract DiamondTest is DeployedDiamondState {
+contract DiamondTester is DeployedDiamondState {
     /// @notice Verifies that the diamond contract is successfully deployed.
     function testDiamondDeployed() public view {
         assertNotEq(address(diamond), address(0));
@@ -29,8 +29,8 @@ contract DiamondTest is DeployedDiamondState {
     /// @notice Ensures all function selectors are registered correctly for each facet.
     /// @dev Compares generated selectors with those registered in the diamond via facetAddress().
     function testSelectorsAreComplete() public {
-        for (uint256 i; i < facetAddresses.length - 1; i++) {
-            bytes4[] memory fromGenSelectors = generateSelectors(facetNames[i]);
+        for (uint256 i; i < facetAddresses.length; i++) {
+            bytes4[] memory fromGenSelectors = _generateSelectors(facetNames[i]);
             for (uint256 j; j < fromGenSelectors.length; j++) {
                 assertEq(facetAddresses[i], diamondLoupe.facetAddress(fromGenSelectors[j]));
             }
@@ -40,7 +40,7 @@ contract DiamondTest is DeployedDiamondState {
     /// @notice Asserts that all function selectors across all facets are unique.
     function testSelectorsAreUnique() public view {
         bytes4[] memory allSelectors = getAllSelectors(address(diamond));
-        for (uint256 i = 0; i < allSelectors.length; i++) {
+        for (uint256 i; i < allSelectors.length; i++) {
             for (uint256 j = i + 1; j < allSelectors.length; j++) {
                 assertNotEq(allSelectors[i], allSelectors[j]);
             }
@@ -50,8 +50,8 @@ contract DiamondTest is DeployedDiamondState {
     /// @notice Ensures each selector maps back to the correct facet.
     function testSelectorToFacetMappingIsCorrect() public view {
         Facet[] memory facetsList = diamondLoupe.facets();
-        for (uint256 i = 0; i < facetsList.length; i++) {
-            for (uint256 j = 0; j < facetsList[i].functionSelectors.length; j++) {
+        for (uint256 i; i < facetsList.length; i++) {
+            for (uint256 j; j < facetsList[i].functionSelectors.length; j++) {
                 bytes4 selector = facetsList[i].functionSelectors[j];
                 address expected = facetsList[i].facetAddress;
                 assertEq(diamondLoupe.facetAddress(selector), expected);
@@ -61,9 +61,9 @@ contract DiamondTest is DeployedDiamondState {
 
     /// @notice Ensures facet addresses return the correct function selectors.
     function testFacetAddressToSelectorsMappingIsCorrect() public view {
-        for (uint256 i = 0; i < facetAddresses.length; i++) {
+        for (uint256 i; i < facetAddresses.length; i++) {
             bytes4[] memory selectors = diamondLoupe.facetFunctionSelectors(facetAddresses[i]);
-            for (uint256 j = 0; j < selectors.length; j++) {
+            for (uint256 j; j < selectors.length; j++) {
                 assertEq(diamondLoupe.facetAddress(selectors[j]), facetAddresses[i]);
             }
         }
