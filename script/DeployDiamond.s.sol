@@ -49,21 +49,21 @@ contract DeployDiamond is Script, HelperContract {
         cut[0] = FacetCut({
             facetAddress: address(diamondCutFacet),
             action: FacetCutAction.Add,
-            functionSelectors: generateSelectors("DiamondCutFacet")
+            functionSelectors: _generateSelectors("DiamondCutFacet")
         });
 
         // Add DiamondLoupeFacet to the cut list
         cut[1] = FacetCut({
             facetAddress: address(diamondLoupeFacet),
             action: FacetCutAction.Add,
-            functionSelectors: generateSelectors("DiamondLoupeFacet")
+            functionSelectors: _generateSelectors("DiamondLoupeFacet")
         });
 
         // Add OwnableRolesFacet to the cut list
         cut[2] = FacetCut({
             facetAddress: address(ownableRolesFacet),
             action: FacetCutAction.Add,
-            functionSelectors: generateSelectors("OwnableRolesFacet")
+            functionSelectors: _generateSelectors("OwnableRolesFacet")
         });
 
         // Deploy the Diamond contract with the facets and initialization args
