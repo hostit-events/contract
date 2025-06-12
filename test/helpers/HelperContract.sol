@@ -11,7 +11,6 @@ import {Facet} from "@diamond/libraries/constants/Types.sol";
 ///
 /// @dev Includes support for generating selectors using Foundry FFI, array manipulation, and facet inspection.
 abstract contract HelperContract is Test {
-
     /// @notice Generates function selectors for a given facet using Foundry's `forge inspect`.
     /// @dev Uses `vm.ffi` to execute a shell command that retrieves method identifiers.
     /// @param _facet The name of the facet contract to inspect.
