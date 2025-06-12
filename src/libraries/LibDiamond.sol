@@ -39,6 +39,7 @@ struct FacetFunctionSelectorsAndPosition {
 
 /// @notice Storage structure for managing facets and interface support in a Diamond (EIP-2535) proxy
 /// @dev Tracks function selector mappings, facet lists, and ERC-165 interface support
+/// @custom:storage-location erc7201:diamond.standard.diamond.storage
 struct DiamondStorage {
     /// @notice Maps each function selector to the facet address and selector’s position in that facet
     mapping(bytes4 => FacetAddressAndPosition) selectorToFacetAndPosition;
@@ -61,13 +62,13 @@ library LibDiamond {
     //                              DIAMOND STORAGE
     //////////////////////////////////////////////////////////////////////////*//
 
-    /// @dev `keccak256("diamond.standard.diamond.storage")`.
-    bytes32 private constant DIAMOND_STORAGE_POSITION =
-        0xc8fcad8db84d3cc18b4c41d551ea0ee66dd599cde068d998e57d5e09332c131c;
+    // keccak256(abi.encode(uint256(keccak256("diamond.standard.diamond.storage")) - 1)) & ~bytes32(uint256(0xff));
+    bytes32 private constant DIAMOND_STORAGE_LOCATION =
+        0x44fefae66705534388ac21ba5f0775616856a675b8eaea9bb0b2507f06238700;
 
     /// @dev Get the diamond storage.
     function diamondStorage() internal pure returns (DiamondStorage storage ds) {
-        bytes32 position = DIAMOND_STORAGE_POSITION;
+        bytes32 position = DIAMOND_STORAGE_LOCATION;
         assembly {
             ds.slot := position
         }
