@@ -2,7 +2,6 @@
 pragma solidity ^0.8.4;
 
 import {Test} from "forge-std/Test.sol";
-import {JSONParserLib} from "solady/utils/JSONParserLib.sol";
 import {IDiamondLoupe} from "@diamond/interfaces/IDiamondLoupe.sol";
 import {Facet} from "@diamond/libraries/constants/Types.sol";
 
@@ -12,9 +11,6 @@ import {Facet} from "@diamond/libraries/constants/Types.sol";
 ///
 /// @dev Includes support for generating selectors using Foundry FFI, array manipulation, and facet inspection.
 abstract contract HelperContract is Test {
-    using JSONParserLib for string;
-    using JSONParserLib for JSONParserLib.Item;
-
     /// @notice Generates function selectors for a given facet using Foundry's `forge inspect`.
     /// @dev Uses `vm.ffi` to execute a shell command that retrieves method identifiers.
     /// @param _facet The name of the facet contract to inspect.
@@ -30,14 +26,14 @@ abstract contract HelperContract is Test {
         bytes memory res = vm.ffi(cmd);
         string memory output = string(res);
 
-        JSONParserLib.Item[] memory children = output.parse().children();
-        uint256 childrenLength = children.length;
+        string[] memory keys = vm.parseJsonKeys(output, "$");
+        uint256 keysLength = keys.length;
 
         // Initialize the selectors array with the selectorCount
-        selectors_ = new bytes4[](childrenLength);
+        selectors_ = new bytes4[](keysLength);
 
-        for (uint256 i; i < childrenLength;) {
-            selectors_[i] = bytes4(bytes32(keccak256(bytes(children[i].key().decodeString()))));
+        for (uint256 i; i < keysLength;) {
+            selectors_[i] = bytes4(bytes32(keccak256(bytes(keys[i]))));
             unchecked {
                 ++i;
             }
