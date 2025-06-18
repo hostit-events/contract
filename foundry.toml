@@ -9,25 +9,8 @@ remappings = [
 ]
 auto_detect_remappings = true
 ffi = true
-optimizer_runs = 1_000_000
-evm_version = 'cancun'
+optimizer_runs = 100_000
+evm_version = "prague"
 allow_internal_expect_revert = false
 names = true
 sizes = true
-# via_ir = true
-
-[fmt]
-# Maximum line length where formatter will try to wrap the line
-line_length = 120
-# Number of spaces per indentation level
-tab_width = 4
-# Print spaces between brackets
-bracket_spacing = false
-# Style of uint/int256 types
-int_types = "long"
-# If function parameters are multiline then always put the function attributes on separate lines
-func_attrs_with_params_multiline = true
-# Style of quotation marks
-quote_style = "double"
-# Style of underscores in number literals
-number_underscore = "preserve"
