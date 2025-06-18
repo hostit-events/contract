@@ -42,3 +42,27 @@ struct Facet {
     address facetAddress;
     bytes4[] functionSelectors;
 }
+
+//*//////////////////////////////////////////////////////////////////////////
+//                               HOST IT TYPES
+/////////////////////////////////////////////////////////////////////////*//
+
+struct TicketData {
+    uint256 id;
+    address organizer;
+    address ticketNFTAddress;
+    bool isFreeEvent;
+    uint256 createdAt;
+    uint256 updatedAt;
+    uint256 startTime;
+    uint256 endTime;
+    uint256 totalTickets;
+    uint256 soldTickets;
+}
+
+enum PayFeeIn {
+    ETH,
+    LSK,
+    USDT,
+    USDCe
+}
