@@ -37,4 +37,62 @@ library LibTicketFactory {
             $.slot := position
         }
     }
+
+    //*//////////////////////////////////////////////////////////////////////////
+    //                               VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////////////////*//
+    function _getTicketCount() internal view returns (uint256) {
+        return _ticketStorage().ticketCount;
+    }
+
+    function _getTicketData(uint256 _ticketId) internal view returns (TicketData memory) {
+        return _ticketStorage().tickets[_ticketId];
+    }
+
+    function _getTicketFeeEnabled(uint256 _ticketId, PayFeeIn _payFeeIn) internal view returns (bool) {
+        return _ticketStorage().ticketFeeEnabled[_ticketId][_payFeeIn];
+    }
+
+    function _getTicketFee(uint256 _ticketId, PayFeeIn _payFeeIn) internal view returns (uint256) {
+        return _ticketStorage().ticketFee[_ticketId][_payFeeIn];
+    }
+
+    function _getTicketAttendance(uint256 _ticketId, address _attendee) internal view returns (bool) {
+        return _ticketStorage().ticketAttendance[_ticketId][_attendee];
+    }
+
+    function _getTicketAttendanceByDay(
+        uint256 _ticketId,
+        uint8 _day,
+        address _attendee
+    ) internal view returns (bool) {
+        return _ticketStorage().ticketAttendanceByDay[_ticketId][_day][_attendee];
+    }
+
+    function _getAllTicketData() internal view returns (TicketData[] memory tickets) {
+        uint256 count = _getTicketCount();
+        tickets = new TicketData[](count);
+        for (uint256 i; i < count;) {
+            tickets[i] = _getTicketData(i + 1); // Ticket IDs start from 1
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    // review
+    function _getLastAmountOfTicketData(
+        uint256 _amount
+    ) internal view returns (TicketData[] memory tickets) {
+        uint256 count = _getTicketCount();
+        require(_amount > 0 && _amount <= count, "Invalid amount");
+        tickets = new TicketData[](_amount);
+        uint256 range = count - _amount;
+        for (uint256 i = range; i < count;) {
+            tickets[i - range] = _getTicketData(i + 1); // Ticket IDs start from 1
+            unchecked {
+                ++i;
+            }
+        }
+    }
 }
