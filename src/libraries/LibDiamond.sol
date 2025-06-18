@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 import {FacetCut, FacetCutAction} from "./constants/Types.sol";
-import {DiamondCut} from "./constants/Events.sol";
+import {DiamondCut} from "./constants/Logs.sol";
 import {
     CannotAddFunctionToDiamondThatAlreadyExists,
     CannotAddSelectorsToZeroAddress,
