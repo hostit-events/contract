@@ -61,11 +61,7 @@ library LibTicketFactory {
         return _ticketStorage().ticketAttendance[_ticketId][_attendee];
     }
 
-    function _getTicketAttendanceByDay(
-        uint256 _ticketId,
-        uint8 _day,
-        address _attendee
-    ) internal view returns (bool) {
+    function _getTicketAttendanceByDay(uint256 _ticketId, uint8 _day, address _attendee) internal view returns (bool) {
         return _ticketStorage().ticketAttendanceByDay[_ticketId][_day][_attendee];
     }
 
@@ -81,9 +77,7 @@ library LibTicketFactory {
     }
 
     // review
-    function _getLastAmountOfTicketData(
-        uint256 _amount
-    ) internal view returns (TicketData[] memory tickets) {
+    function _getLastAmountOfTicketData(uint256 _amount) internal view returns (TicketData[] memory tickets) {
         uint256 count = _getTicketCount();
         require(_amount > 0 && _amount <= count, "Invalid amount");
         tickets = new TicketData[](_amount);
