@@ -89,4 +89,8 @@ library LibTicketFactory {
             }
         }
     }
+
+    function _getHostItEvent() private pure returns (bytes32) {
+        return HOST_IT_EVENT;
+    }
 }
