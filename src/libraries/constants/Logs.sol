@@ -17,9 +17,10 @@ event DiamondCut(FacetCut[] diamondCut, address init, bytes data);
 //*//////////////////////////////////////////////////////////////////////////
 //                             TICKET FACET EVENT
 //////////////////////////////////////////////////////////////////////////*//
-event TicketCreated(uint256 indexed ticketId, TicketData ticketData);
 
-event TicketUpdated(uint256 indexed ticketId, TicketData ticketData);
+event TicketCreated(uint256 indexed ticketId);
+
+event TicketUpdated(uint256 indexed ticketId);
 
 event TicketFeeSet(uint256 indexed ticketId, PayFeeIn payFeeIn, uint256 fee);
 

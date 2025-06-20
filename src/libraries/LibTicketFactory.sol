@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import {LibOwnableRoles} from "@diamond/libraries/LibOwnableRoles.sol";
 import {TicketData, PayFeeIn} from "@host-it/libraries/constants/Types.sol";
+import {FeeAlreadySet} from "@host-it/libraries/constants/Errors.sol";
+import {TicketCreated} from "@host-it/libraries/constants/Logs.sol";
+import {TicketNFT} from "@host-it/external/TicketNFT.sol";
 
 /// @custom:storage-location erc7201:host.it.ticket.factory.storage
 struct TicketStorage {
@@ -29,6 +33,10 @@ library LibTicketFactory {
 
     // keccak256("host.it.event")
     bytes32 private constant HOST_IT_EVENT = 0x2370ff48664935bbd91bfcc2e27d83f8e80f6e0f844565fdc9c2f102483eb37f;
+    // keccak256("host.it.main.organizer")
+    bytes32 private constant MAIN_ORGANIZER = 0x2487a75af03597315acf7d6da832c95b21649da209abb10a542527fad8eea5a4;
+    // keccak256("host.it.organizer")
+    bytes32 private constant ORGANIZER = 0xf073cf9cd7609887f5af80611e0acfc2c67ccf2eb78ddd5eec71007794177229;
 
     /// @dev Get the ticket storage.
     function _ticketStorage() internal pure returns (TicketStorage storage $) {
@@ -92,5 +100,75 @@ library LibTicketFactory {
 
     function _getHostItEvent() private pure returns (bytes32) {
         return HOST_IT_EVENT;
+    }
+
+    //*//////////////////////////////////////////////////////////////////////////
+    //                             INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////////////////*//
+    function _generateEventHash(uint256 _ticketId) internal pure returns (bytes32) {
+        return keccak256(abi.encode(_getHostItEvent(), _ticketId));
+    }
+
+    function _generateMainOrganizerRole(uint256 _ticketId) internal pure returns (uint256) {
+        return uint256(keccak256(abi.encode(_getHostItEvent(), MAIN_ORGANIZER, _ticketId)));
+    }
+
+    function _generateOrganizerRole(uint256 _ticketId) internal pure returns (uint256) {
+        return uint256(keccak256(abi.encode(_getHostItEvent(), ORGANIZER, _ticketId)));
+    }
+
+    function _createTicket(
+        string calldata _name,
+        string calldata _symbol,
+        string calldata _uri,
+        uint256 _startTime,
+        uint256 _endTime,
+        uint256 _maxTickets,
+        bool _isFree,
+        PayFeeIn[] calldata _payFeeIns,
+        uint256[] calldata _fees
+    ) internal returns (address) {
+        TicketStorage storage $ = _ticketStorage();
+        uint256 ticketId = $.ticketCount + 1;
+        uint256 mainOrganizerRole = _generateMainOrganizerRole(ticketId);
+        uint256 organizerRole = _generateOrganizerRole(ticketId);
+        address organizer = msg.sender;
+        LibOwnableRoles._grantRoles(organizer, mainOrganizerRole);
+        LibOwnableRoles._grantRoles(organizer, organizerRole);
+
+        TicketNFT ticketNFT = new TicketNFT{salt: _generateEventHash(ticketId)}(address(this), _name, _symbol, _uri);
+
+        $.tickets[ticketId] = TicketData({
+            id: ticketId,
+            organizer: organizer,
+            ticketNFTAddress: address(ticketNFT),
+            isFree: _isFree,
+            createdAt: block.timestamp,
+            updatedAt: 0,
+            startTime: _startTime,
+            endTime: _endTime,
+            maxTickets: _maxTickets,
+            soldTickets: 0
+        });
+
+        if (!_isFree) {
+            uint256 payFeeInsLength = _payFeeIns.length;
+            require(payFeeInsLength == _fees.length && payFeeInsLength > 0, "Invalid fee configuration");
+            for (uint256 i; i < payFeeInsLength;) {
+                PayFeeIn payFeeIn = _payFeeIns[i];
+                if ($.ticketFeeEnabled[ticketId][payFeeIn]) revert FeeAlreadySet();
+                uint256 fee = _fees[i];
+                require(fee > 0, "Fee must be greater than zero");
+                $.ticketFeeEnabled[ticketId][payFeeIn] = true;
+                $.ticketFee[ticketId][payFeeIn] = fee;
+                unchecked {
+                    ++i;
+                }
+            }
+        }
+
+        emit TicketCreated(ticketId);
+
+        return address(ticketNFT);
     }
 }

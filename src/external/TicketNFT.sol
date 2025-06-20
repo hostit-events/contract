@@ -4,57 +4,70 @@ pragma solidity ^0.8.4;
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import {ERC721Royalty} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
-import {ERC721URIStorage} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /// @notice Thrown when the withdraw call fails
 error WithdrawFailed();
 
+/// @notice Emitted when the base URI is updated
+/// @dev This event is emitted when the base URI for the NFT collection is changed
+/// @param newBaseURI The new base URI set for the NFT collection
+event BaseURIUpdated(string newBaseURI);
+
 /// @title TicketNFT
 /// @notice NFT contract for event ticketing with royalty support, pausability, and metadata management
 /// @dev Inherits from OpenZeppelin and Solady base contracts to combine ERC721, royalties, pausability, and URI storage
-contract TicketNFT is ERC721, ERC721Enumerable, ERC721Royalty, ERC721URIStorage, Ownable, Pausable {
+contract TicketNFT is ERC721, ERC721Enumerable, ERC721Royalty, Ownable, Pausable {
+    string private _uri;
+
     /// @notice Constructor to initialize the NFT collection with name, symbol, and royalty receiver
     /// @param _owner The initial owner of the contract
     /// @param __name The name of the TicketNFT
     /// @param __symbol The symbol of the TicketNFT
-    constructor(address _owner, string memory __name, string memory __symbol) payable ERC721(__name, __symbol) {
+    constructor(address _owner, string memory __name, string memory __symbol, string memory __uri)
+        payable
+        ERC721(__name, __symbol)
+    {
         _initializeOwner(_owner);
         _setDefaultRoyalty(_owner, 500); // Set default royalty to 5%
+        _uri = __uri;
     }
 
     //*//////////////////////////////////////////////////////////////////////////
     //                               VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*//
+
     /// @notice Check if a given interface is supported by this contract
     /// @param _interfaceId The interface identifier to check
     /// @return True if the interface is supported
     function supportsInterface(bytes4 _interfaceId)
         public
         view
-        override(ERC721URIStorage, ERC721Royalty, ERC721Enumerable, ERC721)
+        override(ERC721Royalty, ERC721Enumerable, ERC721)
         returns (bool)
     {
         return super.supportsInterface(_interfaceId) || ERC721Enumerable.supportsInterface(_interfaceId)
-            || ERC721Royalty.supportsInterface(_interfaceId) || ERC721URIStorage.supportsInterface(_interfaceId);
+            || ERC721Royalty.supportsInterface(_interfaceId);
     }
 
     /// @notice Returns the metadata URI for a given token ID
     /// @param _tokenId The ID of the token
     /// @return The URI pointing to the token's metadata
-    function tokenURI(uint256 _tokenId) public view override(ERC721, ERC721URIStorage) returns (string memory) {
-        return super.tokenURI(_tokenId);
+    function tokenURI(uint256 _tokenId) public view override returns (string memory) {
+        _requireOwned(_tokenId); // Ensure the token exists and is owned by the caller
+        return _baseURI(); // Return the base URI set for the NFT collection
     }
 
     //*//////////////////////////////////////////////////////////////////////////
     //                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*//
-    /// @notice Allows the owner to set the metadata URI for a specific token
-    /// @param _tokenId The ID of the token
-    /// @param _tokenURI The URI to assign
-    function setTokenURI(uint256 _tokenId, string calldata _tokenURI) external payable onlyOwner {
-        _setTokenURI(_tokenId, _tokenURI);
+
+    /// @notice Allows the owner to set the base URI
+    /// @param __baseURI The URI to assign
+    function setBaseURI(string calldata __baseURI) external payable onlyOwner {
+        _uri = __baseURI;
+        emit BaseURIUpdated(__baseURI);
     }
 
     /// @notice Pauses token transfers
@@ -84,6 +97,14 @@ contract TicketNFT is ERC721, ERC721Enumerable, ERC721Royalty, ERC721URIStorage,
     //*//////////////////////////////////////////////////////////////////////////
     //                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*//
+
+    /// @dev Internal override for base URI, returns the set base URI
+    /// @notice This function is used to retrieve the base URI for the NFT collection
+    /// @return The base URI for the NFT collection
+    function _baseURI() internal view override returns (string memory) {
+        return _uri;
+    }
+
     /// @dev Internal override for token transfer logic, applies pausability
     function _update(address _to, uint256 _tokenId, address _auth)
         internal
@@ -103,3 +124,33 @@ contract TicketNFT is ERC721, ERC721Enumerable, ERC721Royalty, ERC721URIStorage,
         super._increaseBalance(_account, _amount);
     }
 }
+
+// t>6cXt+Y=JccMMiM~'i:tJcNXi'.'~''~:::::::::::::~:~~~~~~~~~~~~~~~~~~~~'~''
+// +>+>+>i+: '+MM5+      'YDc:.~~~~~::::;;:;;::::~:::::~~~~'.          .'~~
+// iiiiiiii+~.>KMMH+':!+=JD6=''~~~~:::::::::::::::~:~:~~'.                '
+// ccci===i=; .iMMMMMMMMMMQc: ~;!:::::::::::::::;:::::~'   '>=+;!>++>!:
+// ijcii==++>~ ~jMMMMMMMNSi~ .;!;:::;;;;:;;;;:;;;;;::~'  '>j5YYY565YYYJj+~
+// cjjci===++!~ .;+icccc+~   ~;;:;;;;!!!!!;!;!!;;;:::'. ~=Y66665Y5665YY55j;
+// cJttii=+>>>>;~.         '::;;!!!;;!!!!!!;;;;;;;;:~. '+Y665Yt>  :=J55666c
+// cJJttcc=>>!!!;;:~''~::;;;;;:;;;;!;!!!!!!!!;;!;;;:~. :i5S556t!   '=Y566St
+// =jYYJJti=+!!;;::;!!>!!;;::;;;;;:;;;;;;;;;;;;;;;;:~  :=5S55Yj>  .+t55SSt;
+// =jY6S6Ytci>;;;::::~~~~:::;:::::::;;!:;;;;:;;;;;;::'  !tXS666Jtt5SDDSJ+
+// +itSNQSYji+>;;;;;;::::::::~::;;;;;;;!!;!;!;;;;!;;;:'  :=JSDKQKKQQ5j!.
+// !+=jDMQtji>;;;;:::;:::::~:~~::::::;;;;;;;;!!!;;!;:::'    .:!++>;~     .~
+// !;;;=MMMNti+>!;;;:;;::~:~~~~~~~::::::::;;;;;!!!!;;!;;::'            ':::
+// >;;~':iMMMM5j=>;:::::::::~~~~~~~:~~:::::::;;;;;;;;;;;:;:::~;!!>>>;;:::::
+// +!;:~.  ~MMMM6Jc=>;;:;;:::::::::::~~~::::::::;;;:;::;:::::::::~:::::::::
+// c+!;:~~  ;MMMMMSi+;;:;;;;;;;:::::::::::::;;;:::::;;;::;;::::::::::::::::
+// Yc+!;::~   iMMMMMMMc!:;;!!;;!;;;;;:;:::::::::;;;;::;::;:;:::::::::::::::
+// QJc+!::~''   >MMMMMMMKYc++==+>!!;;;;;;;;::::::::;;;:;;:;;:::::::::::::::
+// MM6j=!::~''.     '=tXNHSYJJYt==+!!;!;:::::::::::::;:;;;;:;::::::::::::::
+// MMMXc=!:~~''''          ':!+===>+>!!;::::::~::::~::::::::::::::::;::::~:
+// MMMMMt>::~~~~''.    .~:'    ':;;!!;;!!;;;::::~~~~~~~~~~:~::::::::~~:::::
+// MMMMMMJ!:::~~~''.   .~;!>>:.    :;:::~:;;;;;;;:::::~~''''''~~~~~~:~~::::
+// MMMMMMMc::~~''''..     .':!!;'''                            '''''~~~~~::
+// MMMMMMMM>~~::~~''...         .::;!!!;:.                    .'''~~:~::;;;
+// MMMMMMMMM:~~~~~~''''....                              ...''''~~::::;::;:
+// MMMMMMMMMN~~~~'''''''''....  .               . .    ..'''''~~::::;:::;::
+// MMMMMMMMMMX'~::~~~~'~~~~'''''''..........'''''.....'~~~:::;;;;;;;;;:;;;;
+// MMMMMMMMMMMN!;::~~~'''~~~~''~~~~~'''''''''''..'''~~::;;;;;:;;;;;:;;;:;;;
+/////////////////////////////THANKS FOR COMING/////////////////////////////
