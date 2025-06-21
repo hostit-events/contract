@@ -62,7 +62,6 @@ struct TicketData {
 }
 
 enum FeeType {
-    _INVALID_,
     ETH,
     USDT,
     USDC,
