@@ -49,20 +49,24 @@ struct Facet {
 
 struct TicketData {
     uint256 id;
-    address organizer;
+    address ticketAdmin;
     address ticketNFTAddress;
     bool isFree;
     uint256 createdAt;
     uint256 updatedAt;
     uint256 startTime;
     uint256 endTime;
+    uint256 purchaseStartTime;
     uint256 maxTickets;
     uint256 soldTickets;
 }
 
-enum PayFeeIn {
+enum FeeType {
+    _INVALID_,
     ETH,
     USDT,
     USDC,
+    EURC,
+    USDT0,
     LSK
 }
