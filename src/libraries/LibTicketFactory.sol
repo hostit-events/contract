@@ -36,30 +36,27 @@ error UnsupportedFee(FeeType feeType);
 //*//////////////////////////////////////////////////////////////////////////
 //                            TICKET FACET EVENTS
 //////////////////////////////////////////////////////////////////////////*//
+
 event TicketCreated(uint256 indexed ticketId);
 
 event TicketUpdated(uint256 indexed ticketId);
 
 event TicketPurchased(uint256 indexed ticketId, FeeType indexed feeType);
 
+//*//////////////////////////////////////////////////////////////////////////
+//                           TICKET STORAGE STRUCT
+//////////////////////////////////////////////////////////////////////////*//
+
 /// @custom:storage-location erc7201:host.it.ticket.factory.storage
 struct TicketStorage {
-    // Total number of tickets created.
-    uint256 ticketCount;
-    // Mapping from ticketId to ticket data.
-    mapping(uint256 => TicketData) tickets;
-    // Mapping from organizer address to all ticket IDs they administer
-    mapping(address => uint256[]) allAdminTickets;
-    // Mapping from ticketId to attendance by attendee address.
-    mapping(uint256 => mapping(address => bool)) ticketAttendance;
-    // Mapping from ticketId and day to attendance by attendee address.
-    mapping(uint256 => mapping(uint8 => mapping(address => bool))) ticketAttendanceByDay;
-    // Mapping from ticketId to ticket fee data.
-    mapping(uint256 => mapping(FeeType => bool)) ticketFeeEnabled;
-    // Mapping from ticketId to ticket fee amount.
-    mapping(uint256 => mapping(FeeType => uint256)) ticketFee;
-    // Mapping from FeeType to token address
-    mapping(FeeType => address) feeTokenAddress;
+    uint256 ticketCount; // Total number of tickets created
+    mapping(uint256 => TicketData) tickets; // Mapping from ticketId to ticket data
+    mapping(address => uint256[]) allAdminTickets; // Mapping from organizer address to all ticket IDs they administer
+    mapping(uint256 => mapping(address => bool)) ticketAttendance; // Mapping from ticketId to attendance by attendee address
+    mapping(uint256 => mapping(uint8 => mapping(address => bool))) ticketAttendanceByDay; // Mapping from ticketId and day to attendance by attendee address
+    mapping(uint256 => mapping(FeeType => bool)) ticketFeeEnabled; // Mapping from ticketId to ticket fee data
+    mapping(uint256 => mapping(FeeType => uint256)) ticketFee; // Mapping from ticketId to ticket fee amount
+    mapping(FeeType => address) feeTokenAddress; // Mapping from FeeType to token address
 }
 
 library LibTicketFactory {
@@ -161,13 +158,13 @@ library LibTicketFactory {
         return _ticketStorage().feeTokenAddress[_feeType];
     }
 
-    function _getHostItTicketHash() private pure returns (bytes32) {
-        return HOST_IT_TICKET;
-    }
-
     //*//////////////////////////////////////////////////////////////////////////
     //                             INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*//
+
+    function _getHostItTicketHash() internal pure returns (bytes32) {
+        return HOST_IT_TICKET;
+    }
 
     function _generateTicketHash(uint256 _ticketId) internal pure returns (bytes32) {
         return keccak256(abi.encode(_getHostItTicketHash(), _ticketId));
@@ -385,6 +382,10 @@ library LibTicketFactory {
         }
         emit TicketPurchased(_ticketId, _feeType);
     }
+
+    //*//////////////////////////////////////////////////////////////////////////
+    //                             PRIVATE FUNCTIONS
+    //////////////////////////////////////////////////////////////////////////*//
 
     function _mintTicket(address _ticketNFT, address _to) private returns (uint256 tokenId_) {
         TicketNFT ticketNFT = TicketNFT(_ticketNFT);
