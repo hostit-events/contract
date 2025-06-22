@@ -88,6 +88,8 @@ library LibTicketFactory {
     bytes32 private constant MAIN_TICKET_ADMIN = 0x6a359c448f32c347d7788ed2db1d4048bae93c3383047a3950c8c540e8b8806f;
     // keccak256("host.it.ticket.admin")
     bytes32 private constant TICKET_ADMIN = 0x66d6cfcd439cf68144fc7493914c7b690fcf4a642ab874f3276cb229bd8bcef2;
+    uint256 private constant HOST_IT_FEE_NUMERATOR = 200; // 2% fee for HostIt
+    uint256 private constant HOST_IT_FEE_DENOMINATOR = 10e3; // 10000 (2% = 200 / 10000)
 
     //*//////////////////////////////////////////////////////////////////////////
     //                               VIEW FUNCTIONS
@@ -313,73 +315,31 @@ library LibTicketFactory {
         require(ticketData.endTime > block.timestamp, TicketPurchasePeriodHasEnded());
         require(ticketData.soldTickets < ticketData.maxTickets, AllTicketsSoldOut());
 
-        if (ticketData.isFree) {
-            ticketData.soldTickets = _mintTicket(ticketData.ticketNFTAddress, msg.sender);
-        } else {
+        if (!ticketData.isFree) {
             require($.ticketFeeEnabled[_ticketId][_feeType], FeeNotEnabledForThisPaymentMethod());
             uint256 fee = $.ticketFee[_ticketId][_feeType];
-            require(fee > 0, FeeMustBeGreaterThanZero());
+            // Calculate HostIt's fee
+            uint256 hostItFee = _calculateHostItFee(fee);
+            uint256 totalFee = fee + hostItFee;
 
             if (_feeType == FeeType.ETH) {
-                require(msg.value >= fee, InsufficientETHSent());
-                (bool success,) = address(payable(ticketData.ticketAdmin)).call{value: fee}("");
+                require(msg.value >= totalFee, InsufficientETHSent());
+                (bool success,) = address(payable(ticketData.ticketAdmin)).call{value: totalFee}("");
                 require(success, PaymentFailed(_feeType));
-            } else if (_feeType == FeeType.USDT) {
-                // Handle USDT payment
-                require(
-                    IERC20(_getFeeTokenAddress(_feeType)).allowance(msg.sender, address(this)) >= fee,
-                    InsufficientAllowance(_feeType)
-                );
-                require(
-                    IERC20(_getFeeTokenAddress(_feeType)).trySafeTransferFrom(msg.sender, address(this), fee),
-                    PaymentFailed(_feeType)
-                );
-            } else if (_feeType == FeeType.USDC) {
-                // Handle USDC payment
-                require(
-                    IERC20(_getFeeTokenAddress(_feeType)).allowance(msg.sender, address(this)) >= fee,
-                    InsufficientAllowance(_feeType)
-                );
-                require(
-                    IERC20(_getFeeTokenAddress(_feeType)).trySafeTransferFrom(msg.sender, address(this), fee),
-                    PaymentFailed(_feeType)
-                );
-            } else if (_feeType == FeeType.EURC) {
-                // Handle EURC payment
-                require(
-                    IERC20(_getFeeTokenAddress(_feeType)).allowance(msg.sender, address(this)) >= fee,
-                    InsufficientAllowance(_feeType)
-                );
-                require(
-                    IERC20(_getFeeTokenAddress(_feeType)).trySafeTransferFrom(msg.sender, address(this), fee),
-                    PaymentFailed(_feeType)
-                );
-            } else if (_feeType == FeeType.USDT0) {
-                // Handle USDT0 payment
-                require(
-                    IERC20(_getFeeTokenAddress(_feeType)).allowance(msg.sender, address(this)) >= fee,
-                    InsufficientAllowance(_feeType)
-                );
-                require(
-                    IERC20(_getFeeTokenAddress(_feeType)).trySafeTransferFrom(msg.sender, address(this), fee),
-                    PaymentFailed(_feeType)
-                );
-            } else if (_feeType == FeeType.LSK) {
-                // Handle LSK payment
-                require(
-                    IERC20(_getFeeTokenAddress(_feeType)).allowance(msg.sender, address(this)) >= fee,
-                    InsufficientAllowance(_feeType)
-                );
-                require(
-                    IERC20(_getFeeTokenAddress(_feeType)).trySafeTransferFrom(msg.sender, address(this), fee),
-                    PaymentFailed(_feeType)
-                );
             } else {
-                revert UnsupportedFee(_feeType);
+                // Handle ERC20 payment
+                address feeTokenAddress = _getFeeTokenAddress(_feeType);
+                require(
+                    IERC20(feeTokenAddress).allowance(msg.sender, address(this)) >= totalFee,
+                    InsufficientAllowance(_feeType)
+                );
+                require(
+                    IERC20(feeTokenAddress).trySafeTransferFrom(msg.sender, address(this), totalFee),
+                    PaymentFailed(_feeType)
+                );
             }
-
-            ticketData.soldTickets = _mintTicket(ticketData.ticketNFTAddress, msg.sender);
         }
+        ticketData.soldTickets = _mintTicket(ticketData.ticketNFTAddress, msg.sender);
         emit TicketPurchased(_ticketId, _feeType);
     }
 
@@ -390,5 +350,9 @@ library LibTicketFactory {
     function _mintTicket(address _ticketNFT, address _to) private returns (uint256 tokenId_) {
         TicketNFT ticketNFT = TicketNFT(_ticketNFT);
         tokenId_ = ticketNFT.safeMint(_to);
+    }
+
+    function _calculateHostItFee(uint256 _fee) private pure returns (uint256 hostItFee_) {
+        hostItFee_ = (_fee * HOST_IT_FEE_NUMERATOR) / HOST_IT_FEE_DENOMINATOR;
     }
 }

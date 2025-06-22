@@ -65,7 +65,7 @@ enum FeeType {
     ETH,
     USDT,
     USDC,
+    LSK,
     EURC,
-    USDT0,
-    LSK
+    USDT0
 }
