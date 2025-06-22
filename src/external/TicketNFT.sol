@@ -67,6 +67,13 @@ contract TicketNFT is ERC721Enumerable, ERC721Royalty, Ownable, Pausable {
         return _baseURI(); // Return the base URI set for the NFT collection
     }
 
+    /// @notice Returns the metadata URI for the TicketNFT
+    /// @dev This function returns the base URI set for the NFT collection, which is used
+    /// @return The URI pointing to the collection's metadata
+    function baseURI() public view returns (string memory) {
+        return _baseURI(); // Return the base URI set for the NFT collection
+    }
+
     /// @notice Check if a given interface is supported by this contract
     /// @param _interfaceId The interface identifier to check
     /// @return True if the interface is supported

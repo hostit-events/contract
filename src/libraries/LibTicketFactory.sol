@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 import {LibOwnableRoles} from "@diamond/libraries/LibOwnableRoles.sol";
-import {TicketData, FeeType} from "@host-it/libraries/constants/Types.sol";
+import {TicketData, TicketMetadata, FeeType} from "@host-it/libraries/constants/Types.sol";
 import {TicketNFT} from "@host-it/external/TicketNFT.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -34,12 +34,12 @@ error PaymentFailed(FeeType feeType);
 error UnsupportedFee(FeeType feeType);
 
 //*//////////////////////////////////////////////////////////////////////////
-//                            TICKET FACET EVENTS
+//                           TICKET FACTORY EVENTS
 //////////////////////////////////////////////////////////////////////////*//
 
-event TicketCreated(uint256 indexed ticketId);
+event TicketCreated(uint256 indexed ticketId, TicketData ticketData);
 
-event TicketUpdated(uint256 indexed ticketId);
+event TicketUpdated(uint256 indexed ticketId, TicketData ticketData);
 
 event TicketPurchased(uint256 indexed ticketId, FeeType indexed feeType);
 
@@ -99,15 +99,59 @@ library LibTicketFactory {
         return _ticketStorage().ticketCount;
     }
 
-    function _getTicketData(uint256 _ticketId) internal view returns (TicketData memory) {
-        return _ticketStorage().tickets[_ticketId];
+    function _ticketExists(uint256 _ticketId) internal view returns (bool) {
+        return _ticketId > 0 && _ticketId <= _getTicketCount();
     }
 
-    function _getAllTicketData() internal view returns (TicketData[] memory tickets) {
+    function _getTicketMetadata(uint256 _ticketId) internal view returns (TicketMetadata memory ticketMetadata_) {
+        require(_ticketExists(_ticketId), InvalidTicketId());
+
+        TicketData memory ticketData = _ticketStorage().tickets[_ticketId];
+        TicketNFT ticketNFT = TicketNFT(ticketData.ticketNFTAddress);
+        ticketMetadata_ = TicketMetadata({
+            id: ticketData.id,
+            ticketAdmin: ticketData.ticketAdmin,
+            ticketNFTAddress: ticketData.ticketNFTAddress,
+            name: ticketNFT.name(),
+            symbol: ticketNFT.symbol(),
+            uri: ticketNFT.baseURI(),
+            isFree: ticketData.isFree,
+            createdAt: ticketData.createdAt,
+            updatedAt: ticketData.updatedAt,
+            startTime: ticketData.startTime,
+            endTime: ticketData.endTime,
+            purchaseStartTime: ticketData.purchaseStartTime,
+            maxTickets: ticketData.maxTickets,
+            soldTickets: ticketData.soldTickets
+        });
+    }
+
+    function _getAllTicketMetadata() internal view returns (TicketMetadata[] memory ticketMetadatas_) {
         uint256 count = _getTicketCount();
-        tickets = new TicketData[](count);
-        for (uint256 i; i < count;) {
-            tickets[i] = _getTicketData(i + 1); // Ticket IDs start from 1
+        ticketMetadatas_ = new TicketMetadata[](count);
+        for (uint256 i = 1; i < count;) {
+            // Ticket IDs start from 1
+            ticketMetadatas_[i] = _getTicketMetadata(i);
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function _getAllAdminTicketIds(address _organizer) internal view returns (uint256[] memory adminTicketIds_) {
+        adminTicketIds_ = _ticketStorage().allAdminTickets[_organizer];
+    }
+
+    function _getAllAdminTicketMetadata(address _organizer)
+        internal
+        view
+        returns (TicketMetadata[] memory ticketMetadatas_)
+    {
+        uint256[] memory adminTicketIds = _getAllAdminTicketIds(_organizer);
+        uint256 adminTicketCount = adminTicketIds.length;
+        ticketMetadatas_ = new TicketMetadata[](adminTicketCount);
+        for (uint256 i; i < adminTicketCount;) {
+            ticketMetadatas_[i] = _getTicketMetadata(adminTicketIds[i]);
             unchecked {
                 ++i;
             }
@@ -115,25 +159,17 @@ library LibTicketFactory {
     }
 
     // review
-    function _getLastAmountOfTicketData(uint256 _amount) internal view returns (TicketData[] memory tickets) {
+    function _getLastAmountOfTicketMetadata(uint256 _amount)
+        internal
+        view
+        returns (TicketMetadata[] memory ticketMetadatas_)
+    {
         uint256 count = _getTicketCount();
         require(_amount > 0 && _amount <= count, InvalidTicketAmount());
-        tickets = new TicketData[](_amount);
+        ticketMetadatas_ = new TicketMetadata[](_amount);
         uint256 range = count - _amount;
         for (uint256 i = range; i < count;) {
-            tickets[i - range] = _getTicketData(i + 1); // Ticket IDs start from 1
-            unchecked {
-                ++i;
-            }
-        }
-    }
-
-    function _getAllAdminTickets(address _organizer) internal view returns (TicketData[] memory tickets) {
-        uint256[] memory adminTicketIds = _ticketStorage().allAdminTickets[_organizer];
-        uint256 adminTicketCount = adminTicketIds.length;
-        tickets = new TicketData[](adminTicketCount);
-        for (uint256 i; i < adminTicketCount;) {
-            tickets[i] = _getTicketData(adminTicketIds[i]);
+            ticketMetadatas_[i - range] = _getTicketMetadata(i + 1); // Ticket IDs start from 1
             unchecked {
                 ++i;
             }
@@ -212,7 +248,7 @@ library LibTicketFactory {
 
         TicketNFT ticketNFT = new TicketNFT{salt: _generateTicketHash(ticketId)}(address(this), _name, _symbol, _uri);
 
-        $.tickets[ticketId] = TicketData({
+        TicketData memory ticketData = TicketData({
             id: ticketId,
             ticketAdmin: ticketAdmin,
             ticketNFTAddress: address(ticketNFT),
@@ -225,6 +261,8 @@ library LibTicketFactory {
             maxTickets: _maxTickets,
             soldTickets: 0
         });
+
+        $.tickets[ticketId] = ticketData;
 
         $.allAdminTickets[ticketAdmin].push(ticketId);
 
@@ -243,7 +281,7 @@ library LibTicketFactory {
             }
         }
 
-        emit TicketCreated(ticketId);
+        emit TicketCreated(ticketId, ticketData);
 
         return (address(ticketNFT), ticketId);
     }
@@ -302,13 +340,13 @@ library LibTicketFactory {
         ticketNFT.updateMetadata(_name, _symbol);
         ticketNFT.setBaseURI(_uri);
 
-        emit TicketUpdated(_ticketId);
+        emit TicketUpdated(_ticketId, ticketData);
     }
 
     function _purchaseTicket(uint256 _ticketId, FeeType _feeType) internal {
+        require(_ticketExists(_ticketId), InvalidTicketId());
         TicketStorage storage $ = _ticketStorage();
 
-        require(_ticketId > 0 && _ticketId <= $.ticketCount, InvalidTicketId());
         TicketData storage ticketData = $.tickets[_ticketId];
 
         require(ticketData.purchaseStartTime <= block.timestamp, TicketPurchaseNotStarted());
@@ -339,7 +377,9 @@ library LibTicketFactory {
                 );
             }
         }
+
         ticketData.soldTickets = _mintTicket(ticketData.ticketNFTAddress, msg.sender);
+
         emit TicketPurchased(_ticketId, _feeType);
     }
 
@@ -348,8 +388,7 @@ library LibTicketFactory {
     //////////////////////////////////////////////////////////////////////////*//
 
     function _mintTicket(address _ticketNFT, address _to) private returns (uint256 tokenId_) {
-        TicketNFT ticketNFT = TicketNFT(_ticketNFT);
-        tokenId_ = ticketNFT.safeMint(_to);
+        tokenId_ = TicketNFT(_ticketNFT).safeMint(_to);
     }
 
     function _calculateHostItFee(uint256 _fee) private pure returns (uint256 hostItFee_) {
