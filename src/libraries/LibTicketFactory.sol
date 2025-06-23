@@ -18,7 +18,7 @@ error SymbolCannotBeEmpty();
 error URICannotBeEmpty();
 error StartTimeMustBeInTheFuture();
 error EndTimeMustBeAfterStartTime();
-error PurchaseStartTimeMustBeInTheFutureBeforeStartTime();
+error PurchaseStartTimeMustBeBeforeStartTime();
 error MaxTicketsMustBeGreaterThanZero();
 error InvalidFeeConfig();
 error FeeMustBeGreaterThanZero();
@@ -56,7 +56,7 @@ struct TicketStorage {
     mapping(uint256 => mapping(uint8 => mapping(address => bool))) ticketAttendanceByDay; // Mapping from ticketId and day to attendance by attendee address
     mapping(uint256 => mapping(FeeType => bool)) ticketFeeEnabled; // Mapping from ticketId to ticket fee data
     mapping(uint256 => mapping(FeeType => uint256)) ticketFee; // Mapping from ticketId to ticket fee amount
-    mapping(FeeType => address) feeTokenAddress; // Mapping from FeeType to token address
+    mapping(FeeType => mapping(uint256 => address)) feeTokenAddress; // Mapping from FeeType to ChainId to token address
 }
 
 library LibTicketFactory {
@@ -84,12 +84,18 @@ library LibTicketFactory {
 
     // keccak256("host.it.ticket")
     bytes32 private constant HOST_IT_TICKET = 0x2d39ca42f70b8fb1aad3b6b712ac8513c31a927ee8719e6858dd209fe8ec8293;
-    // keccak256("host.it.main.ticket.admin")
-    bytes32 private constant MAIN_TICKET_ADMIN = 0x6a359c448f32c347d7788ed2db1d4048bae93c3383047a3950c8c540e8b8806f;
-    // keccak256("host.it.ticket.admin")
-    bytes32 private constant TICKET_ADMIN = 0x66d6cfcd439cf68144fc7493914c7b690fcf4a642ab874f3276cb229bd8bcef2;
     uint256 private constant HOST_IT_FEE_NUMERATOR = 300; // 3% fee for HostIt
     uint256 private constant HOST_IT_FEE_DENOMINATOR = 10e3; // 10000 (3% = 300 / 10000)
+
+    //*//////////////////////////////////////////////////////////////////////////
+    //                                   ROLES
+    //////////////////////////////////////////////////////////////////////////*//
+
+    // keccak256(abi.encode("host.it.ticket", "host.it.main.ticket.admin"))
+    bytes32 private constant HOST_IT_MAIN_TICKET_ADMIN =
+        0x4f62ba22fe32d34f7d04ed4df946da35e566bd8d2c18d248ee027926debe6800;
+    // keccak256(abi.encode("host.it.ticket", "host.it.ticket.admin"))
+    bytes32 private constant HOST_IT_TICKET_ADMIN = 0xa1905dd34f004fe1d2938a45a40621b381f6ace7cbdf0cdb3514edf0f9c07dcc;
 
     //*//////////////////////////////////////////////////////////////////////////
     //                               VIEW FUNCTIONS
@@ -193,7 +199,7 @@ library LibTicketFactory {
     }
 
     function _getFeeTokenAddress(FeeType _feeType) internal view returns (address) {
-        return _ticketStorage().feeTokenAddress[_feeType];
+        return _ticketStorage().feeTokenAddress[_feeType][block.chainid];
     }
 
     //*//////////////////////////////////////////////////////////////////////////
@@ -209,11 +215,27 @@ library LibTicketFactory {
     }
 
     function _generateMainTicketAdminRole(uint256 _ticketId) internal pure returns (uint256) {
-        return uint256(keccak256(abi.encode(_getHostItTicketHash(), MAIN_TICKET_ADMIN, _ticketId)));
+        return uint256(keccak256(abi.encode(HOST_IT_MAIN_TICKET_ADMIN, _ticketId)));
     }
 
     function _generateTicketAdminRole(uint256 _ticketId) internal pure returns (uint256) {
-        return uint256(keccak256(abi.encode(_getHostItTicketHash(), TICKET_ADMIN, _ticketId)));
+        return uint256(keccak256(abi.encode(HOST_IT_TICKET_ADMIN, _ticketId)));
+    }
+
+    function _setFeeTokenAddress(FeeType _feeType, address _tokenAddress) private {
+        require(_tokenAddress != address(0), "Token address cannot be zero");
+        _ticketStorage().feeTokenAddress[_feeType][block.chainid] = _tokenAddress;
+    }
+
+    function _setFeeTokenAddresses(FeeType[] calldata _feeTypes, address[] calldata _tokenAddresses) internal {
+        LibOwnableRoles._checkOwner();
+        require(_feeTypes.length == _tokenAddresses.length && _feeTypes.length > 0, InvalidFeeConfig());
+        for (uint256 i; i < _feeTypes.length;) {
+            _setFeeTokenAddress(_feeTypes[i], _tokenAddresses[i]);
+            unchecked {
+                ++i;
+            }
+        }
     }
 
     function _createTicket(
@@ -233,10 +255,7 @@ library LibTicketFactory {
         require(bytes(_uri).length > 0, URICannotBeEmpty());
         require(_startTime > block.timestamp + 1 hours, StartTimeMustBeInTheFuture());
         require(_endTime > _startTime + 1 days, EndTimeMustBeAfterStartTime());
-        require(
-            _purchaseStartTime >= block.timestamp && _purchaseStartTime < _startTime,
-            PurchaseStartTimeMustBeInTheFutureBeforeStartTime()
-        );
+        require(_purchaseStartTime < _startTime, PurchaseStartTimeMustBeBeforeStartTime());
         require(_maxTickets > 0, MaxTicketsMustBeGreaterThanZero());
         if (!_isFree) require(_feeTypes.length == _fees.length && _feeTypes.length > 0, InvalidFeeConfig());
 
@@ -268,9 +287,10 @@ library LibTicketFactory {
 
         if (!_isFree) {
             uint256 feeTypesLength = _feeTypes.length;
+            require(feeTypesLength == _fees.length && feeTypesLength > 0, InvalidFeeConfig());
             for (uint256 i; i < feeTypesLength;) {
                 FeeType feeType = _feeTypes[i];
-                if ($.ticketFeeEnabled[ticketId][feeType]) revert FeeAlreadySet();
+                require(!$.ticketFeeEnabled[ticketId][feeType], FeeAlreadySet());
                 uint256 fee = _fees[i];
                 require(fee > 0, FeeMustBeGreaterThanZero());
                 $.ticketFeeEnabled[ticketId][feeType] = true;
@@ -302,15 +322,12 @@ library LibTicketFactory {
         LibOwnableRoles._checkRoles(_generateMainTicketAdminRole(_ticketId));
 
         TicketStorage storage $ = _ticketStorage();
-        TicketData storage ticketData = $.tickets[_ticketId];
+        TicketData memory ticketData = $.tickets[_ticketId];
 
-        require(bytes(_name).length > 0, NameCannotBeEmpty());
-        require(bytes(_symbol).length > 0, SymbolCannotBeEmpty());
-        require(bytes(_uri).length > 0, URICannotBeEmpty());
         require(ticketData.startTime > block.timestamp, TicketUseHasCommenced());
         require(_startTime > block.timestamp + 1 hours, StartTimeMustBeInTheFuture());
         require(_endTime > _startTime + 1 days, EndTimeMustBeAfterStartTime());
-        require(_purchaseStartTime > block.timestamp, PurchaseStartTimeMustBeInTheFutureBeforeStartTime());
+        require(_purchaseStartTime < _startTime, PurchaseStartTimeMustBeBeforeStartTime());
         require(_maxTickets > 0, MaxTicketsMustBeGreaterThanZero());
 
         ticketData.updatedAt = block.timestamp;
@@ -325,7 +342,7 @@ library LibTicketFactory {
             require(feeTypesLength == _fees.length && feeTypesLength > 0, InvalidFeeConfig());
             for (uint256 i; i < feeTypesLength;) {
                 FeeType feeType = _feeTypes[i];
-                if ($.ticketFeeEnabled[_ticketId][feeType]) revert FeeAlreadySet();
+                require(!$.ticketFeeEnabled[_ticketId][feeType], FeeAlreadySet());
                 uint256 fee = _fees[i];
                 require(fee > 0, FeeMustBeGreaterThanZero());
                 $.ticketFeeEnabled[_ticketId][feeType] = true;
@@ -337,8 +354,8 @@ library LibTicketFactory {
         }
 
         TicketNFT ticketNFT = TicketNFT(ticketData.ticketNFTAddress);
-        ticketNFT.updateMetadata(_name, _symbol);
-        ticketNFT.setBaseURI(_uri);
+        if (bytes(_name).length > 0 || bytes(_symbol).length > 0) ticketNFT.updateMetadata(_name, _symbol);
+        if (bytes(_uri).length > 0) ticketNFT.setBaseURI(_uri);
 
         emit TicketUpdated(_ticketId, ticketData);
     }
@@ -347,9 +364,9 @@ library LibTicketFactory {
         require(_ticketExists(_ticketId), InvalidTicketId());
         TicketStorage storage $ = _ticketStorage();
 
-        TicketData storage ticketData = $.tickets[_ticketId];
+        TicketData memory ticketData = $.tickets[_ticketId];
 
-        require(ticketData.purchaseStartTime <= block.timestamp, TicketPurchaseNotStarted());
+        require(block.timestamp > ticketData.purchaseStartTime, TicketPurchaseNotStarted());
         require(ticketData.endTime > block.timestamp, TicketPurchasePeriodHasEnded());
         require(ticketData.soldTickets < ticketData.maxTickets, AllTicketsSoldOut());
 
