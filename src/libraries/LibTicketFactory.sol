@@ -29,9 +29,9 @@ error TicketPurchasePeriodHasEnded();
 error AllTicketsSoldOut();
 error FeeNotEnabledForThisPaymentMethod();
 error InsufficientETHSent();
+error InsufficientBalance(FeeType feeType);
 error InsufficientAllowance(FeeType feeType);
 error PaymentFailed(FeeType feeType);
-error UnsupportedFee(FeeType feeType);
 
 //*//////////////////////////////////////////////////////////////////////////
 //                           TICKET FACTORY EVENTS
@@ -383,6 +383,7 @@ library LibTicketFactory {
             } else {
                 // Handle ERC20 payment
                 address feeTokenAddress = _getFeeTokenAddress(_feeType);
+                require(IERC20(feeTokenAddress).balanceOf(msg.sender) >= totalFee, InsufficientBalance(_feeType));
                 require(
                     IERC20(feeTokenAddress).allowance(msg.sender, address(this)) >= totalFee,
                     InsufficientAllowance(_feeType)
