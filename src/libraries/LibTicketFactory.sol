@@ -28,6 +28,7 @@ error TicketPurchaseNotStarted();
 error TicketPurchasePeriodHasEnded();
 error TicketUsePeriodNotStarted();
 error TicketUsePeriodHasEnded();
+error TicketUsePeriodHasNotEnded();
 error TicketAlreadyPurchased();
 error AllTicketsSoldOut();
 error FeeNotEnabledForThisPaymentMethod();
@@ -63,8 +64,8 @@ struct TicketStorage {
     mapping(uint256 => mapping(FeeType => bool)) ticketFeeEnabled; // Mapping from ticketId to ticket fee data
     mapping(uint256 => mapping(FeeType => uint256)) ticketFee; // Mapping from ticketId to ticket fee amount
     mapping(FeeType => mapping(uint256 => address)) feeTokenAddress; // Mapping from FeeType to ChainId to token address
-    mapping(uint256 => mapping(uint256 => uint256)) ticketBalanceByChainId; // Mapping from ticketId to chainId to ticket fee balance
-    mapping(uint256 => mapping(uint256 => uint256)) hostItBalanceByChainId; // Mapping from ticketId to chainId to HostIt fee balance
+    mapping(uint256 => mapping(FeeType => mapping(uint256 => uint256))) ticketBalanceByChainId; // Mapping from ticketId to chainId to ticket fee balance
+    mapping(uint256 => mapping(FeeType => mapping(uint256 => uint256))) hostItBalanceByChainId; // Mapping from ticketId to chainId to HostIt fee balance
 }
 
 library LibTicketFactory {
@@ -407,9 +408,9 @@ library LibTicketFactory {
                 );
             }
             // Update the ticket balance for the chain
-            $.ticketBalanceByChainId[_ticketId][block.chainid] += fee;
+            $.ticketBalanceByChainId[_ticketId][_feeType][block.chainid] += fee;
             // Update the HostIt fee balance for the chain
-            $.hostItBalanceByChainId[_ticketId][block.chainid] += hostItFee;
+            $.hostItBalanceByChainId[_ticketId][_feeType][block.chainid] += hostItFee;
             emit TicketPurchased(_ticketId, ticketBuyer, _feeType, totalFee);
         }
         tokenId_ = _mintTicket(ticketAddress, ticketBuyer);
@@ -446,6 +447,26 @@ library LibTicketFactory {
         }
 
         emit TicketCheckedIn(_ticketId, _ticketOwner, blockTimestamp);
+    }
+
+    function _withdrawTicketBalance(uint256 _ticketId, FeeType _feeType) internal {
+        LibOwnableRoles._checkRoles(_generateMainTicketAdminRole(_ticketId));
+
+        TicketStorage storage $ = _ticketStorage();
+        TicketData memory ticketData = $.tickets[_ticketId];
+        // 3 days refund period after the ticket end time
+        require(ticketData.endTime + 3 days < block.timestamp, TicketUsePeriodHasNotEnded());
+        uint256 balance = $.ticketBalanceByChainId[_ticketId][_feeType][block.chainid];
+        require(balance > 0, InsufficientBalance(_feeType));
+
+        address feeTokenAddress = _getFeeTokenAddress(_feeType);
+        if (_feeType == FeeType.ETH) {
+            (bool success,) = address(payable(msg.sender)).call{value: balance}("");
+            require(success, PaymentFailed(_feeType));
+        } else {
+            IERC20(feeTokenAddress).safeTransfer(msg.sender, balance);
+        }
+        $.ticketBalanceByChainId[_ticketId][_feeType][block.chainid] = 0;
     }
 
     //*//////////////////////////////////////////////////////////////////////////
