@@ -37,6 +37,7 @@ error InsufficientBalance(FeeType feeType);
 error InsufficientAllowance(FeeType feeType);
 error PaymentFailed(FeeType feeType);
 error NotTicketOwner(uint256 tokenId);
+error NotCheckedIn();
 
 //*//////////////////////////////////////////////////////////////////////////
 //                           TICKET FACTORY EVENTS
@@ -72,6 +73,7 @@ struct TicketStorage {
 
 library LibTicketFactory {
     using SafeERC20 for IERC20;
+    using LibTicketFactory for *;
 
     //*//////////////////////////////////////////////////////////////////////////
     //                               TICKET STORAGE
@@ -463,16 +465,43 @@ library LibTicketFactory {
         emit TicketCheckIn(_ticketId, _ticketOwner, blockTimestamp);
     }
 
+    // todo
+    function _requestTicketRefund(uint256 _ticketId, FeeType _feeType, address _to) internal {
+        TicketData memory ticketData = _ticketId._getTicketData();
+
+        require(ticketData.endTime < block.timestamp, TicketUseAndRefundPeriodHasNotEnded());
+        require(_getTicketCheckIns(_ticketId, msg.sender), NotCheckedIn());
+    }
+
     function _withdrawTicketBalance(uint256 _ticketId, FeeType _feeType, address _to) internal {
         LibOwnableRoles._checkRoles(_generateMainTicketAdminRole(_ticketId));
 
-        TicketStorage storage $ = _ticketStorage();
-        TicketData memory ticketData = _getTicketData(_ticketId);
+        TicketData memory ticketData = _ticketId._getTicketData();
         // 3 days refund period after the ticket end time
         require(ticketData.endTime + 3 days < block.timestamp, TicketUseAndRefundPeriodHasNotEnded());
         uint256 balance = _getTicketBalance(_ticketId, _feeType);
         require(balance > 0, InsufficientBalance(_feeType));
-        $.ticketBalanceByChainId[_ticketId][_feeType][block.chainid] = 0;
+        _ticketStorage().ticketBalanceByChainId[_ticketId][_feeType][block.chainid] = 0;
+
+        if (_feeType == FeeType.ETH) {
+            (bool success,) = address(payable(_to)).call{value: balance}("");
+            require(success, PaymentFailed(_feeType));
+        } else {
+            IERC20(_feeType._getFeeTokenAddress()).safeTransfer(_to, balance);
+        }
+
+        // Unpause the NFT contract after withdrawal
+        TicketNFT(ticketData.ticketNFTAddress).unpause();
+        emit TicketBalanceWithdrawn(_ticketId, _feeType, balance, _to);
+    }
+
+    function _withdrawHostItBalance(FeeType _feeType, address _to) internal {
+        LibOwnableRoles._checkOwner();
+
+        TicketStorage storage $ = _ticketStorage();
+        uint256 balance = _getHostItBalance(_feeType);
+        require(balance > 0, InsufficientBalance(_feeType));
+        $.hostItBalanceByChainId[_feeType][block.chainid] = 0;
 
         if (_feeType == FeeType.ETH) {
             (bool success,) = address(payable(_to)).call{value: balance}("");
@@ -481,9 +510,7 @@ library LibTicketFactory {
             IERC20(_getFeeTokenAddress(_feeType)).safeTransfer(_to, balance);
         }
 
-        // Unpause the NFT contract after withdrawal
-        TicketNFT(ticketData.ticketNFTAddress).unpause();
-        emit TicketBalanceWithdrawn(_ticketId, _feeType, balance, _to);
+        emit TicketBalanceWithdrawn(0, _feeType, balance, _to); // Ticket ID is 0 for HostIt balance withdrawals
     }
 
     //*//////////////////////////////////////////////////////////////////////////
