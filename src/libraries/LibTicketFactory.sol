@@ -88,8 +88,8 @@ library LibTicketFactory {
     bytes32 private constant MAIN_TICKET_ADMIN = 0x6a359c448f32c347d7788ed2db1d4048bae93c3383047a3950c8c540e8b8806f;
     // keccak256("host.it.ticket.admin")
     bytes32 private constant TICKET_ADMIN = 0x66d6cfcd439cf68144fc7493914c7b690fcf4a642ab874f3276cb229bd8bcef2;
-    uint256 private constant HOST_IT_FEE_NUMERATOR = 200; // 2% fee for HostIt
-    uint256 private constant HOST_IT_FEE_DENOMINATOR = 10e3; // 10000 (2% = 200 / 10000)
+    uint256 private constant HOST_IT_FEE_NUMERATOR = 300; // 3% fee for HostIt
+    uint256 private constant HOST_IT_FEE_DENOMINATOR = 10e3; // 10000 (3% = 300 / 10000)
 
     //*//////////////////////////////////////////////////////////////////////////
     //                               VIEW FUNCTIONS
@@ -357,8 +357,7 @@ library LibTicketFactory {
             require($.ticketFeeEnabled[_ticketId][_feeType], FeeNotEnabledForThisPaymentMethod());
             uint256 fee = $.ticketFee[_ticketId][_feeType];
             // Calculate HostIt's fee
-            uint256 hostItFee = _calculateHostItFee(fee);
-            uint256 totalFee = fee + hostItFee;
+            uint256 totalFee = fee + _calculateHostItFee(fee);
 
             if (_feeType == FeeType.ETH) {
                 require(msg.value >= totalFee, InsufficientETHSent());
