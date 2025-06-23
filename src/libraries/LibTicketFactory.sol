@@ -26,12 +26,16 @@ error TicketUseHasCommenced();
 error InvalidTicketId();
 error TicketPurchaseNotStarted();
 error TicketPurchasePeriodHasEnded();
+error TicketUsePeriodNotStarted();
+error TicketUsePeriodHasEnded();
+error TicketAlreadyPurchased();
 error AllTicketsSoldOut();
 error FeeNotEnabledForThisPaymentMethod();
 error InsufficientETHSent();
 error InsufficientBalance(FeeType feeType);
 error InsufficientAllowance(FeeType feeType);
 error PaymentFailed(FeeType feeType);
+error NotTicketOwner(uint256 tokenId);
 
 //*//////////////////////////////////////////////////////////////////////////
 //                           TICKET FACTORY EVENTS
@@ -41,7 +45,9 @@ event TicketCreated(uint256 indexed ticketId, TicketData ticketData);
 
 event TicketUpdated(uint256 indexed ticketId, TicketData ticketData);
 
-event TicketPurchased(uint256 indexed ticketId, FeeType indexed feeType);
+event TicketPurchased(uint256 indexed ticketId, address indexed buyer, FeeType feeType, uint256 fee);
+
+event TicketCheckedIn(uint256 indexed ticketId, address indexed ticketOwner, uint256 timestamp);
 
 //*//////////////////////////////////////////////////////////////////////////
 //                           TICKET STORAGE STRUCT
@@ -52,11 +58,13 @@ struct TicketStorage {
     uint256 ticketCount; // Total number of tickets created
     mapping(uint256 => TicketData) tickets; // Mapping from ticketId to ticket data
     mapping(address => uint256[]) allAdminTickets; // Mapping from organizer address to all ticket IDs they administer
-    mapping(uint256 => mapping(address => bool)) ticketAttendance; // Mapping from ticketId to attendance by attendee address
-    mapping(uint256 => mapping(uint8 => mapping(address => bool))) ticketAttendanceByDay; // Mapping from ticketId and day to attendance by attendee address
+    mapping(uint256 => mapping(address => bool)) ticketCheckIns; // Mapping from ticketId to attendance by attendee address
+    mapping(uint256 => mapping(uint16 => mapping(address => bool))) ticketCheckInsByDay; // Mapping from ticketId and day to attendance by attendee address
     mapping(uint256 => mapping(FeeType => bool)) ticketFeeEnabled; // Mapping from ticketId to ticket fee data
     mapping(uint256 => mapping(FeeType => uint256)) ticketFee; // Mapping from ticketId to ticket fee amount
     mapping(FeeType => mapping(uint256 => address)) feeTokenAddress; // Mapping from FeeType to ChainId to token address
+    mapping(uint256 => mapping(uint256 => uint256)) ticketBalanceByChainId; // Mapping from ticketId to chainId to ticket fee balance
+    mapping(uint256 => mapping(uint256 => uint256)) hostItBalanceByChainId; // Mapping from ticketId to chainId to HostIt fee balance
 }
 
 library LibTicketFactory {
@@ -182,12 +190,12 @@ library LibTicketFactory {
         }
     }
 
-    function _getTicketAttendance(uint256 _ticketId, address _attendee) internal view returns (bool) {
-        return _ticketStorage().ticketAttendance[_ticketId][_attendee];
+    function _getTicketCheckIns(uint256 _ticketId, address _attendee) internal view returns (bool) {
+        return _ticketStorage().ticketCheckIns[_ticketId][_attendee];
     }
 
-    function _getTicketAttendanceByDay(uint256 _ticketId, uint8 _day, address _attendee) internal view returns (bool) {
-        return _ticketStorage().ticketAttendanceByDay[_ticketId][_day][_attendee];
+    function _getTicketCheckInsByDay(uint256 _ticketId, uint8 _day, address _attendee) internal view returns (bool) {
+        return _ticketStorage().ticketCheckInsByDay[_ticketId][_day][_attendee];
     }
 
     function _getTicketFeeEnabled(uint256 _ticketId, FeeType _feeType) internal view returns (bool) {
@@ -360,7 +368,7 @@ library LibTicketFactory {
         emit TicketUpdated(_ticketId, ticketData);
     }
 
-    function _purchaseTicket(uint256 _ticketId, FeeType _feeType) internal {
+    function _purchaseTicket(uint256 _ticketId, FeeType _feeType) internal returns (uint256 tokenId_) {
         require(_ticketExists(_ticketId), InvalidTicketId());
         TicketStorage storage $ = _ticketStorage();
 
@@ -370,11 +378,16 @@ library LibTicketFactory {
         require(ticketData.endTime > block.timestamp, TicketPurchasePeriodHasEnded());
         require(ticketData.soldTickets < ticketData.maxTickets, AllTicketsSoldOut());
 
+        address ticketBuyer = msg.sender;
+        address ticketAddress = ticketData.ticketNFTAddress;
+        require(TicketNFT(ticketAddress).balanceOf(ticketBuyer) == 0, TicketAlreadyPurchased());
+
         if (!ticketData.isFree) {
             require($.ticketFeeEnabled[_ticketId][_feeType], FeeNotEnabledForThisPaymentMethod());
             uint256 fee = $.ticketFee[_ticketId][_feeType];
             // Calculate HostIt's fee
-            uint256 totalFee = fee + _calculateHostItFee(fee);
+            uint256 hostItFee = _calculateHostItFee(fee);
+            uint256 totalFee = fee + hostItFee;
 
             if (_feeType == FeeType.ETH) {
                 require(msg.value >= totalFee, InsufficientETHSent());
@@ -383,21 +396,56 @@ library LibTicketFactory {
             } else {
                 // Handle ERC20 payment
                 address feeTokenAddress = _getFeeTokenAddress(_feeType);
-                require(IERC20(feeTokenAddress).balanceOf(msg.sender) >= totalFee, InsufficientBalance(_feeType));
+                require(IERC20(feeTokenAddress).balanceOf(ticketBuyer) >= totalFee, InsufficientBalance(_feeType));
                 require(
-                    IERC20(feeTokenAddress).allowance(msg.sender, address(this)) >= totalFee,
+                    IERC20(feeTokenAddress).allowance(ticketBuyer, address(this)) >= totalFee,
                     InsufficientAllowance(_feeType)
                 );
                 require(
-                    IERC20(feeTokenAddress).trySafeTransferFrom(msg.sender, address(this), totalFee),
+                    IERC20(feeTokenAddress).trySafeTransferFrom(ticketBuyer, address(this), totalFee),
                     PaymentFailed(_feeType)
                 );
             }
+            // Update the ticket balance for the chain
+            $.ticketBalanceByChainId[_ticketId][block.chainid] += fee;
+            // Update the HostIt fee balance for the chain
+            $.hostItBalanceByChainId[_ticketId][block.chainid] += hostItFee;
+            emit TicketPurchased(_ticketId, ticketBuyer, _feeType, totalFee);
+        }
+        tokenId_ = _mintTicket(ticketAddress, ticketBuyer);
+        ticketData.soldTickets = tokenId_;
+    }
+
+    function _checkIn(uint256 _ticketId, address _ticketOwner, uint256 _tokenId) internal {
+        LibOwnableRoles._checkRoles(_generateTicketAdminRole(_ticketId));
+        // note: The following line is commented out because it is not necessary to check if the ticket exists here.
+        // checkRoles has already verified the ticket ID before calling this function.
+        // require(_ticketExists(_ticketId), InvalidTicketId());
+
+        TicketStorage storage $ = _ticketStorage();
+
+        TicketData memory ticketData = $.tickets[_ticketId];
+        uint256 blockTimestamp = block.timestamp;
+        require(blockTimestamp >= ticketData.startTime, TicketUsePeriodNotStarted());
+        require(blockTimestamp <= ticketData.endTime, TicketUsePeriodHasEnded());
+        TicketNFT ticketNFT = TicketNFT(ticketData.ticketNFTAddress);
+        require(ticketNFT.ownerOf(_tokenId) == _ticketOwner, NotTicketOwner(_tokenId));
+
+        // Pause the NFT contract if it is not already paused
+        // This is a security measure to ensure that the ticket cannot be transferred while the check-in
+        // is being processed, which could lead to inconsistencies in attendance tracking
+        if (!ticketNFT.paused()) ticketNFT.pause();
+
+        // Mark attendance
+        if (!$.ticketCheckIns[_ticketId][_ticketOwner]) $.ticketCheckIns[_ticketId][_ticketOwner] = true;
+
+        // Mark attendance by day
+        uint16 day = uint16((blockTimestamp - ticketData.startTime) / 1 days);
+        if (!$.ticketCheckInsByDay[_ticketId][day][_ticketOwner]) {
+            $.ticketCheckInsByDay[_ticketId][day][_ticketOwner] = true;
         }
 
-        ticketData.soldTickets = _mintTicket(ticketData.ticketNFTAddress, msg.sender);
-
-        emit TicketPurchased(_ticketId, _feeType);
+        emit TicketCheckedIn(_ticketId, _ticketOwner, blockTimestamp);
     }
 
     //*//////////////////////////////////////////////////////////////////////////
