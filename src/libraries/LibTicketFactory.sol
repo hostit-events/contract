@@ -28,7 +28,7 @@ error TicketPurchaseNotStarted();
 error TicketPurchasePeriodHasEnded();
 error TicketUsePeriodNotStarted();
 error TicketUsePeriodHasEnded();
-error TicketUsePeriodHasNotEnded();
+error TicketUseAndRefundPeriodHasNotEnded();
 error TicketAlreadyPurchased();
 error AllTicketsSoldOut();
 error FeeNotEnabledForThisPaymentMethod();
@@ -49,6 +49,8 @@ event TicketUpdated(uint256 indexed ticketId, TicketData ticketData);
 event TicketPurchased(uint256 indexed ticketId, address indexed buyer, FeeType feeType, uint256 fee);
 
 event TicketCheckedIn(uint256 indexed ticketId, address indexed ticketOwner, uint256 timestamp);
+
+event TicketBalanceWithdrawn(uint256 indexed ticketId, FeeType feeType, uint256 amount, address indexed target);
 
 //*//////////////////////////////////////////////////////////////////////////
 //                           TICKET STORAGE STRUCT
@@ -449,24 +451,25 @@ library LibTicketFactory {
         emit TicketCheckedIn(_ticketId, _ticketOwner, blockTimestamp);
     }
 
-    function _withdrawTicketBalance(uint256 _ticketId, FeeType _feeType) internal {
+    function _withdrawTicketBalance(uint256 _ticketId, FeeType _feeType, address _to) internal {
         LibOwnableRoles._checkRoles(_generateMainTicketAdminRole(_ticketId));
 
         TicketStorage storage $ = _ticketStorage();
         TicketData memory ticketData = $.tickets[_ticketId];
         // 3 days refund period after the ticket end time
-        require(ticketData.endTime + 3 days < block.timestamp, TicketUsePeriodHasNotEnded());
+        require(ticketData.endTime + 3 days < block.timestamp, TicketUseAndRefundPeriodHasNotEnded());
         uint256 balance = $.ticketBalanceByChainId[_ticketId][_feeType][block.chainid];
         require(balance > 0, InsufficientBalance(_feeType));
+        $.ticketBalanceByChainId[_ticketId][_feeType][block.chainid] = 0;
 
         address feeTokenAddress = _getFeeTokenAddress(_feeType);
         if (_feeType == FeeType.ETH) {
-            (bool success,) = address(payable(msg.sender)).call{value: balance}("");
+            (bool success,) = address(payable(_to)).call{value: balance}("");
             require(success, PaymentFailed(_feeType));
         } else {
-            IERC20(feeTokenAddress).safeTransfer(msg.sender, balance);
+            IERC20(feeTokenAddress).safeTransfer(_to, balance);
         }
-        $.ticketBalanceByChainId[_ticketId][_feeType][block.chainid] = 0;
+        emit TicketBalanceWithdrawn(_ticketId, _feeType, balance, _to);
     }
 
     //*//////////////////////////////////////////////////////////////////////////
