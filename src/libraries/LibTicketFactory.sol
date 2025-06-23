@@ -42,7 +42,7 @@ error NotTicketOwner(uint256 tokenId);
 //                           TICKET FACTORY EVENTS
 //////////////////////////////////////////////////////////////////////////*//
 
-event TicketCreated(uint256 indexed ticketId, TicketData ticketData);
+event TicketCreated(uint256 indexed ticketId, TicketData ticketData, address indexed ticketAdmin);
 
 event TicketUpdated(uint256 indexed ticketId, TicketData ticketData);
 
@@ -268,7 +268,8 @@ library LibTicketFactory {
         require(_endTime > _startTime + 1 days, EndTimeMustBeAfterStartTime());
         require(_purchaseStartTime < _startTime, PurchaseStartTimeMustBeBeforeStartTime());
         require(_maxTickets > 0, MaxTicketsMustBeGreaterThanZero());
-        if (!_isFree) require(_feeTypes.length == _fees.length && _feeTypes.length > 0, InvalidFeeConfig());
+        uint256 feeTypesLength = _feeTypes.length;
+        if (!_isFree) require(feeTypesLength == _fees.length && feeTypesLength > 0, InvalidFeeConfig());
 
         TicketStorage storage $ = _ticketStorage();
         uint256 ticketId = ++$.ticketCount;
@@ -297,8 +298,6 @@ library LibTicketFactory {
         $.allAdminTickets[ticketAdmin].push(ticketId);
 
         if (!_isFree) {
-            uint256 feeTypesLength = _feeTypes.length;
-            require(feeTypesLength == _fees.length && feeTypesLength > 0, InvalidFeeConfig());
             for (uint256 i; i < feeTypesLength;) {
                 FeeType feeType = _feeTypes[i];
                 require(!$.ticketFeeEnabled[ticketId][feeType], FeeAlreadySet());
@@ -312,7 +311,7 @@ library LibTicketFactory {
             }
         }
 
-        emit TicketCreated(ticketId, ticketData);
+        emit TicketCreated(ticketId, ticketData, ticketAdmin);
 
         return (address(ticketNFT), ticketId);
     }
