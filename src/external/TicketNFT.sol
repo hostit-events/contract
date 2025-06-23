@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import {ERC721Royalty} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+
+/// @notice Thrown when the contract balance is zero
+error BalanceZero();
 
 /// @notice Thrown when the withdraw call fails
 error WithdrawFailed();
@@ -13,7 +17,7 @@ error WithdrawFailed();
 /// @notice Emitted when the base URI is updated
 /// @dev This event is emitted when the base URI for the NFT collection is changed
 /// @param newBaseURI The new base URI set for the NFT collection
-event BaseURIUpdated(string newBaseURI);
+event BaseURIUpdated(string indexed newBaseURI);
 
 /// @notice Emitted when the metadata of the NFT collection is updated
 /// @dev This event is emitted when the name or symbol of the NFT collection is changed
@@ -90,7 +94,12 @@ contract TicketNFT is ERC721Enumerable, ERC721Royalty, Ownable, Pausable {
     //                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*//
 
-    function updateMetadata(string calldata __name, string calldata __symbol) external payable onlyOwner {
+    function updateMetadata(string calldata __name, string calldata __symbol)
+        external
+        payable
+        onlyOwner
+        whenNotPaused
+    {
         _name = __name; // Update the name of the NFT collection
         _symbol = __symbol; // Update the symbol of the NFT collection
         emit MetadataUpdated(__name, __symbol);
@@ -98,9 +107,29 @@ contract TicketNFT is ERC721Enumerable, ERC721Royalty, Ownable, Pausable {
 
     /// @notice Allows the owner to set the base URI
     /// @param __baseURI The URI to assign
-    function setBaseURI(string calldata __baseURI) external payable onlyOwner {
+    function setBaseURI(string calldata __baseURI) external payable onlyOwner whenNotPaused {
         _uri = __baseURI;
         emit BaseURIUpdated(__baseURI);
+    }
+
+    /// @notice Mints a new token to a given address
+    /// @param _to The address to receive the newly minted token
+    /// @return tokenId_ The ID of the newly minted token
+    function safeMint(address _to) external payable onlyOwner returns (uint256 tokenId_) {
+        tokenId_ = totalSupply() + 1; // Increment tokenId based on total supply
+        _safeMint(_to, tokenId_);
+    }
+
+    function transferFrom(address from, address to, uint256 tokenId) public override(IERC721, ERC721) whenNotPaused {
+        super.transferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data)
+        public
+        override(IERC721, ERC721)
+        whenNotPaused
+    {
+        super.safeTransferFrom(from, to, tokenId, data);
     }
 
     /// @notice Pauses token transfers
@@ -113,18 +142,12 @@ contract TicketNFT is ERC721Enumerable, ERC721Royalty, Ownable, Pausable {
         _unpause();
     }
 
-    /// @notice Mints a new token to a given address
-    /// @param _to The address to receive the newly minted token
-    /// @return tokenId_ The ID of the newly minted token
-    function safeMint(address _to) external payable onlyOwner returns (uint256 tokenId_) {
-        tokenId_ = totalSupply() + 1; // Increment tokenId based on total supply
-        _safeMint(_to, tokenId_);
-    }
-
     /// @notice Withdraws the contract's ETH balance to the owner's address
     function withdraw() external payable onlyOwner {
-        (bool success,) = address(payable(owner())).call{value: address(this).balance}("");
-        if (!success) revert WithdrawFailed();
+        uint256 balance = address(this).balance;
+        require(balance > 0, BalanceZero());
+        (bool success,) = address(payable(owner())).call{value: balance}("");
+        require(success, WithdrawFailed());
     }
 
     //*//////////////////////////////////////////////////////////////////////////
@@ -138,22 +161,17 @@ contract TicketNFT is ERC721Enumerable, ERC721Royalty, Ownable, Pausable {
         return _uri;
     }
 
-    /// @dev Internal override for token transfer logic, applies pausability
+    /// @dev Internal override for token transfer logic
     function _update(address _to, uint256 _tokenId, address _auth)
         internal
         override(ERC721, ERC721Enumerable)
-        whenNotPaused
         returns (address)
     {
         return super._update(_to, _tokenId, _auth);
     }
 
-    /// @dev Internal override to increase balance, applies pausability
-    function _increaseBalance(address _account, uint128 _amount)
-        internal
-        override(ERC721, ERC721Enumerable)
-        whenNotPaused
-    {
+    /// @dev Internal override to increase balance
+    function _increaseBalance(address _account, uint128 _amount) internal override(ERC721, ERC721Enumerable) {
         super._increaseBalance(_account, _amount);
     }
 }
