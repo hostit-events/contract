@@ -48,7 +48,7 @@ event TicketUpdated(uint256 indexed ticketId, TicketData ticketData);
 
 event TicketPurchased(uint256 indexed ticketId, address indexed buyer, FeeType feeType, uint256 fee);
 
-event TicketCheckedIn(uint256 indexed ticketId, address indexed ticketOwner, uint256 timestamp);
+event TicketCheckIn(uint256 indexed ticketId, address indexed ticketOwner, uint256 timestamp);
 
 event TicketBalanceWithdrawn(uint256 indexed ticketId, FeeType feeType, uint256 amount, address indexed target);
 
@@ -67,7 +67,7 @@ struct TicketStorage {
     mapping(uint256 => mapping(FeeType => uint256)) ticketFee; // Mapping from ticketId to ticket fee amount
     mapping(FeeType => mapping(uint256 => address)) feeTokenAddress; // Mapping from FeeType to ChainId to token address
     mapping(uint256 => mapping(FeeType => mapping(uint256 => uint256))) ticketBalanceByChainId; // Mapping from ticketId to chainId to ticket fee balance
-    mapping(uint256 => mapping(FeeType => mapping(uint256 => uint256))) hostItBalanceByChainId; // Mapping from ticketId to chainId to HostIt fee balance
+    mapping(FeeType => mapping(uint256 => uint256)) hostItBalanceByChainId; // Mapping from FeeType to chainId to HostIt fee balance
 }
 
 library LibTicketFactory {
@@ -120,10 +120,15 @@ library LibTicketFactory {
         return _ticketId > 0 && _ticketId <= _getTicketCount();
     }
 
+    function _getTicketData(uint256 _ticketId) internal view returns (TicketData memory ticketData_) {
+        require(_ticketExists(_ticketId), InvalidTicketId());
+        ticketData_ = _ticketStorage().tickets[_ticketId];
+    }
+
     function _getTicketMetadata(uint256 _ticketId) internal view returns (TicketMetadata memory ticketMetadata_) {
         require(_ticketExists(_ticketId), InvalidTicketId());
 
-        TicketData memory ticketData = _ticketStorage().tickets[_ticketId];
+        TicketData memory ticketData = _getTicketData(_ticketId);
         TicketNFT ticketNFT = TicketNFT(ticketData.ticketNFTAddress);
         ticketMetadata_ = TicketMetadata({
             id: ticketData.id,
@@ -197,7 +202,7 @@ library LibTicketFactory {
         return _ticketStorage().ticketCheckIns[_ticketId][_attendee];
     }
 
-    function _getTicketCheckInsByDay(uint256 _ticketId, uint8 _day, address _attendee) internal view returns (bool) {
+    function _getTicketCheckInsByDay(uint256 _ticketId, uint16 _day, address _attendee) internal view returns (bool) {
         return _ticketStorage().ticketCheckInsByDay[_ticketId][_day][_attendee];
     }
 
@@ -211,6 +216,14 @@ library LibTicketFactory {
 
     function _getFeeTokenAddress(FeeType _feeType) internal view returns (address) {
         return _ticketStorage().feeTokenAddress[_feeType][block.chainid];
+    }
+
+    function _getTicketBalance(uint256 _ticketId, FeeType _feeType) internal view returns (uint256) {
+        return _ticketStorage().ticketBalanceByChainId[_ticketId][_feeType][block.chainid];
+    }
+
+    function _getHostItBalance(FeeType _feeType) internal view returns (uint256) {
+        return _ticketStorage().hostItBalanceByChainId[_feeType][block.chainid];
     }
 
     //*//////////////////////////////////////////////////////////////////////////
@@ -264,7 +277,7 @@ library LibTicketFactory {
         require(bytes(_name).length > 0, NameCannotBeEmpty());
         require(bytes(_symbol).length > 0, SymbolCannotBeEmpty());
         require(bytes(_uri).length > 0, URICannotBeEmpty());
-        require(_startTime > block.timestamp + 1 hours, StartTimeMustBeInTheFuture());
+        require(_startTime > block.timestamp, StartTimeMustBeInTheFuture());
         require(_endTime > _startTime + 1 days, EndTimeMustBeAfterStartTime());
         require(_purchaseStartTime < _startTime, PurchaseStartTimeMustBeBeforeStartTime());
         require(_maxTickets > 0, MaxTicketsMustBeGreaterThanZero());
@@ -332,10 +345,10 @@ library LibTicketFactory {
         LibOwnableRoles._checkRoles(_generateMainTicketAdminRole(_ticketId));
 
         TicketStorage storage $ = _ticketStorage();
-        TicketData memory ticketData = $.tickets[_ticketId];
+        TicketData memory ticketData = _getTicketData(_ticketId);
 
         require(ticketData.startTime > block.timestamp, TicketUseHasCommenced());
-        require(_startTime > block.timestamp + 1 hours, StartTimeMustBeInTheFuture());
+        require(_startTime > block.timestamp, StartTimeMustBeInTheFuture());
         require(_endTime > _startTime + 1 days, EndTimeMustBeAfterStartTime());
         require(_purchaseStartTime < _startTime, PurchaseStartTimeMustBeBeforeStartTime());
         require(_maxTickets > 0, MaxTicketsMustBeGreaterThanZero());
@@ -352,7 +365,7 @@ library LibTicketFactory {
             require(feeTypesLength == _fees.length && feeTypesLength > 0, InvalidFeeConfig());
             for (uint256 i; i < feeTypesLength;) {
                 FeeType feeType = _feeTypes[i];
-                require(!$.ticketFeeEnabled[_ticketId][feeType], FeeAlreadySet());
+                require(!_getTicketFeeEnabled(_ticketId, feeType), FeeAlreadySet());
                 uint256 fee = _fees[i];
                 require(fee > 0, FeeMustBeGreaterThanZero());
                 $.ticketFeeEnabled[_ticketId][feeType] = true;
@@ -374,7 +387,7 @@ library LibTicketFactory {
         require(_ticketExists(_ticketId), InvalidTicketId());
         TicketStorage storage $ = _ticketStorage();
 
-        TicketData memory ticketData = $.tickets[_ticketId];
+        TicketData memory ticketData = _getTicketData(_ticketId);
 
         require(block.timestamp > ticketData.purchaseStartTime, TicketPurchaseNotStarted());
         require(ticketData.endTime > block.timestamp, TicketPurchasePeriodHasEnded());
@@ -385,8 +398,8 @@ library LibTicketFactory {
         require(TicketNFT(ticketAddress).balanceOf(ticketBuyer) == 0, TicketAlreadyPurchased());
 
         if (!ticketData.isFree) {
-            require($.ticketFeeEnabled[_ticketId][_feeType], FeeNotEnabledForThisPaymentMethod());
-            uint256 fee = $.ticketFee[_ticketId][_feeType];
+            require(_getTicketFeeEnabled(_ticketId, _feeType), FeeNotEnabledForThisPaymentMethod());
+            uint256 fee = _getTicketFee(_ticketId, _feeType);
             // Calculate HostIt's fee
             uint256 hostItFee = _calculateHostItFee(fee);
             uint256 totalFee = fee + hostItFee;
@@ -411,7 +424,7 @@ library LibTicketFactory {
             // Update the ticket balance for the chain
             $.ticketBalanceByChainId[_ticketId][_feeType][block.chainid] += fee;
             // Update the HostIt fee balance for the chain
-            $.hostItBalanceByChainId[_ticketId][_feeType][block.chainid] += hostItFee;
+            $.hostItBalanceByChainId[_feeType][block.chainid] += hostItFee;
             emit TicketPurchased(_ticketId, ticketBuyer, _feeType, totalFee);
         }
         tokenId_ = _mintTicket(ticketAddress, ticketBuyer);
@@ -426,7 +439,7 @@ library LibTicketFactory {
 
         TicketStorage storage $ = _ticketStorage();
 
-        TicketData memory ticketData = $.tickets[_ticketId];
+        TicketData memory ticketData = _getTicketData(_ticketId);
         uint256 blockTimestamp = block.timestamp;
         require(blockTimestamp >= ticketData.startTime, TicketUsePeriodNotStarted());
         require(blockTimestamp <= ticketData.endTime, TicketUsePeriodHasEnded());
@@ -439,35 +452,37 @@ library LibTicketFactory {
         if (!ticketNFT.paused()) ticketNFT.pause();
 
         // Mark attendance
-        if (!$.ticketCheckIns[_ticketId][_ticketOwner]) $.ticketCheckIns[_ticketId][_ticketOwner] = true;
+        if (!_getTicketCheckIns(_ticketId, _ticketOwner)) $.ticketCheckIns[_ticketId][_ticketOwner] = true;
 
         // Mark attendance by day
         uint16 day = uint16((blockTimestamp - ticketData.startTime) / 1 days);
-        if (!$.ticketCheckInsByDay[_ticketId][day][_ticketOwner]) {
+        if (!_getTicketCheckInsByDay(_ticketId, day, _ticketOwner)) {
             $.ticketCheckInsByDay[_ticketId][day][_ticketOwner] = true;
         }
 
-        emit TicketCheckedIn(_ticketId, _ticketOwner, blockTimestamp);
+        emit TicketCheckIn(_ticketId, _ticketOwner, blockTimestamp);
     }
 
     function _withdrawTicketBalance(uint256 _ticketId, FeeType _feeType, address _to) internal {
         LibOwnableRoles._checkRoles(_generateMainTicketAdminRole(_ticketId));
 
         TicketStorage storage $ = _ticketStorage();
-        TicketData memory ticketData = $.tickets[_ticketId];
+        TicketData memory ticketData = _getTicketData(_ticketId);
         // 3 days refund period after the ticket end time
         require(ticketData.endTime + 3 days < block.timestamp, TicketUseAndRefundPeriodHasNotEnded());
-        uint256 balance = $.ticketBalanceByChainId[_ticketId][_feeType][block.chainid];
+        uint256 balance = _getTicketBalance(_ticketId, _feeType);
         require(balance > 0, InsufficientBalance(_feeType));
         $.ticketBalanceByChainId[_ticketId][_feeType][block.chainid] = 0;
 
-        address feeTokenAddress = _getFeeTokenAddress(_feeType);
         if (_feeType == FeeType.ETH) {
             (bool success,) = address(payable(_to)).call{value: balance}("");
             require(success, PaymentFailed(_feeType));
         } else {
-            IERC20(feeTokenAddress).safeTransfer(_to, balance);
+            IERC20(_getFeeTokenAddress(_feeType)).safeTransfer(_to, balance);
         }
+
+        // Unpause the NFT contract after withdrawal
+        TicketNFT(ticketData.ticketNFTAddress).unpause();
         emit TicketBalanceWithdrawn(_ticketId, _feeType, balance, _to);
     }
 
