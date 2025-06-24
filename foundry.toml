@@ -6,6 +6,9 @@ remappings = [
     '@diamond/=src/',
     '@diamond-script/=script/',
     '@diamond-test/=test/',
+    '@host-it/=src/',
+    '@host-it-script/=script/',
+    '@host-it-test/=test/',
 ]
 auto_detect_remappings = true
 ffi = true
@@ -14,3 +17,4 @@ evm_version = "prague"
 allow_internal_expect_revert = false
 names = true
 sizes = true
+via_ir = true
