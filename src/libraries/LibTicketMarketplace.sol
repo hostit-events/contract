@@ -11,7 +11,8 @@ import {LibTicketFactory} from "@host-it/libraries/LibTicketFactory.sol";
 import {
     HOST_IT_TICKET,
     HOST_IT_FEE_NUMERATOR,
-    HOST_IT_FEE_DENOMINATOR
+    HOST_IT_FEE_DENOMINATOR,
+    REFUND_PERIOD
 } from "@host-it/libraries/constants/TicketConstants.sol";
 import {
     TicketCreated,
@@ -33,6 +34,7 @@ import {
     TicketAlreadyPurchased,
     AllTicketsSoldOut,
     FeeNotEnabledForThisPaymentMethod,
+    InvalidTokenAddress,
     InsufficientETHSent,
     InsufficientBalance,
     InsufficientAllowance,
@@ -77,8 +79,9 @@ library LibTicketMarketplace {
 
     function _setFeeTokenAddresses(FeeType[] calldata _feeTypes, address[] calldata _tokenAddresses) internal {
         LibOwnableRoles._checkOwner();
-        require(_feeTypes.length == _tokenAddresses.length && _feeTypes.length > 0, InvalidFeeConfig());
-        for (uint256 i; i < _feeTypes.length;) {
+        uint256 feeTypesLength = _feeTypes.length;
+        require(feeTypesLength == _tokenAddresses.length && feeTypesLength > 0, InvalidFeeConfig());
+        for (uint256 i; i < feeTypesLength;) {
             _setFeeTokenAddress(_feeTypes[i], _tokenAddresses[i]);
             unchecked {
                 ++i;
@@ -173,14 +176,14 @@ library LibTicketMarketplace {
 
         TicketData memory ticketData = _ticketId._getTicketData();
         // 3 days refund period after the ticket end time
-        require(ticketData.endTime + 3 days < block.timestamp, TicketUseAndRefundPeriodHasNotEnded());
+        require(ticketData.endTime + REFUND_PERIOD < block.timestamp, TicketUseAndRefundPeriodHasNotEnded());
         uint256 balance = _ticketId._getTicketBalance(_feeType);
         require(balance > 0, InsufficientBalance(_feeType));
         LibTicketStorage._ticketStorage().ticketBalanceByChainId[_ticketId][_feeType][block.chainid] = 0;
 
         if (_feeType == FeeType.ETH) {
             (bool success,) = address(payable(_to)).call{value: balance}("");
-            require(success, PaymentFailed(_feeType));
+            require(success, WithdrawFailed(_feeType));
         } else {
             require(IERC20(_feeType._getFeeTokenAddress()).trySafeTransfer(_to, balance), WithdrawFailed(_feeType));
         }
@@ -221,7 +224,7 @@ library LibTicketMarketplace {
     }
 
     function _setFeeTokenAddress(FeeType _feeType, address _tokenAddress) private {
-        require(_tokenAddress != address(0), "Token address cannot be zero");
+        require(_tokenAddress != address(0), InvalidTokenAddress());
         LibTicketStorage._ticketStorage().feeTokenAddress[_feeType][block.chainid] = _tokenAddress;
     }
 }
