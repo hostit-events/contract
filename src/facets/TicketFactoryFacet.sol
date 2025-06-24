@@ -127,8 +127,4 @@ contract TicketFactoryFacet {
     {
         _ticketId._updateTicketFee(_isFree, _feeTypes, _fees);
     }
-
-    function purchaseTicket(uint256 _ticketId, FeeType _feeType) external payable returns (uint256) {
-        return _ticketId._purchaseTicket(_feeType);
-    }
 }
