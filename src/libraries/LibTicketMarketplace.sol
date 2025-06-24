@@ -54,7 +54,10 @@ library LibTicketMarketplace {
     //////////////////////////////////////////////////////////////////////////*//
 
     function _getFeeTokenAddress(FeeType _feeType) internal view returns (address) {
-        return LibTicketStorage._ticketStorage().feeTokenAddress[_feeType][block.chainid];
+        TicketStorage storage $ = LibTicketStorage._ticketStorage();
+        address feeTokenAddress = $.feeTokenAddress[_feeType][block.chainid];
+        require(feeTokenAddress != address(0), InvalidTokenAddress());
+        return feeTokenAddress;
     }
 
     function _getTicketFeeEnabled(uint256 _ticketId, FeeType _feeType) internal view returns (bool) {
