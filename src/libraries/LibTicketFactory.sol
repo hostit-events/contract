@@ -233,7 +233,7 @@ library LibTicketFactory {
     }
 
     //*//////////////////////////////////////////////////////////////////////////
-    //                             INTERNAL FUNCTIONS
+    //                               PURE FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*//
 
     function _getHostItTicketHash() internal pure returns (bytes32) {
@@ -252,10 +252,9 @@ library LibTicketFactory {
         return uint256(keccak256(abi.encode(HOST_IT_TICKET_ADMIN, _ticketId)));
     }
 
-    function _setFeeTokenAddress(FeeType _feeType, address _tokenAddress) private {
-        require(_tokenAddress != address(0), "Token address cannot be zero");
-        _ticketStorage().feeTokenAddress[_feeType][block.chainid] = _tokenAddress;
-    }
+    //*//////////////////////////////////////////////////////////////////////////
+    //                             INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////////////////*//
 
     function _setFeeTokenAddresses(FeeType[] calldata _feeTypes, address[] calldata _tokenAddresses) internal {
         LibOwnableRoles._checkOwner();
@@ -335,7 +334,7 @@ library LibTicketFactory {
         return (address(ticketNFT), ticketId);
     }
 
-    function _updateTicket(
+    function _updateTicketMetadata(
         uint256 _ticketId,
         string calldata _name,
         string calldata _symbol,
@@ -343,15 +342,10 @@ library LibTicketFactory {
         uint256 _startTime,
         uint256 _endTime,
         uint256 _purchaseStartTime,
-        uint256 _maxTickets,
-        bool _isFree,
-        FeeType[] calldata _feeTypes,
-        uint256[] calldata _fees
+        uint256 _maxTickets
     ) internal {
         require(_ticketId._ticketExists(), InvalidTicketId());
         _ticketId._generateMainTicketAdminRole()._checkRoles();
-
-        TicketStorage storage $ = _ticketStorage();
         TicketData memory ticketData = _ticketId._getTicketData();
 
         require(ticketData.startTime > block.timestamp, TicketUseHasCommenced());
@@ -365,6 +359,23 @@ library LibTicketFactory {
         ticketData.endTime = _endTime;
         ticketData.purchaseStartTime = _purchaseStartTime;
         ticketData.maxTickets = _maxTickets;
+
+        TicketNFT ticketNFT = TicketNFT(ticketData.ticketNFTAddress);
+        if (bytes(_name).length > 0 || bytes(_symbol).length > 0) ticketNFT.updateMetadata(_name, _symbol);
+        if (bytes(_uri).length > 0) ticketNFT.setBaseURI(_uri);
+
+        emit TicketUpdated(_ticketId, ticketData);
+    }
+
+    function _updateTicketFee(uint256 _ticketId, bool _isFree, FeeType[] calldata _feeTypes, uint256[] calldata _fees)
+        internal
+    {
+        require(_ticketId._ticketExists(), InvalidTicketId());
+        _ticketId._generateMainTicketAdminRole()._checkRoles();
+
+        TicketStorage storage $ = _ticketStorage();
+        TicketData memory ticketData = _ticketId._getTicketData();
+
         ticketData.isFree = _isFree;
 
         if (!_isFree) {
@@ -382,10 +393,6 @@ library LibTicketFactory {
                 }
             }
         }
-
-        TicketNFT ticketNFT = TicketNFT(ticketData.ticketNFTAddress);
-        if (bytes(_name).length > 0 || bytes(_symbol).length > 0) ticketNFT.updateMetadata(_name, _symbol);
-        if (bytes(_uri).length > 0) ticketNFT.setBaseURI(_uri);
 
         emit TicketUpdated(_ticketId, ticketData);
     }
@@ -413,7 +420,7 @@ library LibTicketFactory {
 
             if (_feeType == FeeType.ETH) {
                 require(msg.value >= totalFee, InsufficientETHSent());
-                (bool success,) = address(payable(ticketData.ticketAdmin)).call{value: totalFee}("");
+                (bool success,) = address(payable(address(this))).call{value: totalFee}("");
                 require(success, PaymentFailed(_feeType));
             } else {
                 // Handle ERC20 payment
@@ -519,5 +526,10 @@ library LibTicketFactory {
 
     function _calculateHostItFee(uint256 _fee) private pure returns (uint256 hostItFee_) {
         hostItFee_ = (_fee * HOST_IT_FEE_NUMERATOR) / HOST_IT_FEE_DENOMINATOR;
+    }
+
+    function _setFeeTokenAddress(FeeType _feeType, address _tokenAddress) private {
+        require(_tokenAddress != address(0), "Token address cannot be zero");
+        _ticketStorage().feeTokenAddress[_feeType][block.chainid] = _tokenAddress;
     }
 }
