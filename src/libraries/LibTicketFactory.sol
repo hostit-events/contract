@@ -4,8 +4,14 @@ pragma solidity ^0.8.4;
 import {LibOwnableRoles} from "@diamond/libraries/LibOwnableRoles.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {TicketNFT} from "@host-it/external/TicketNFT.sol";
 import {LibTicketStorage, TicketStorage} from "@host-it/libraries/LibTicketStorage.sol";
 import {TicketData, TicketMetadata, FeeType} from "@host-it/libraries/types/TicketTypes.sol";
+import {
+    HOST_IT_TICKET,
+    HOST_IT_FEE_NUMERATOR,
+    HOST_IT_FEE_DENOMINATOR
+} from "@host-it/libraries/constants/TicketConstants.sol";
 import {
     TicketCreated,
     TicketUpdated,
@@ -14,7 +20,6 @@ import {
     TicketCheckIn,
     TicketBalanceWithdrawn
 } from "@host-it/libraries/logs/TicketLogs.sol";
-import {TicketNFT} from "@host-it/external/TicketNFT.sol";
 import {
     InvalidTicketAmount,
     FeeAlreadySet,
@@ -49,15 +54,6 @@ library LibTicketFactory {
     using {LibOwnableRoles._grantRoles} for address;
     using {LibOwnableRoles._checkRoles} for uint256;
     using SafeERC20 for IERC20;
-
-    //*//////////////////////////////////////////////////////////////////////////
-    //                                 CONSTANTS
-    //////////////////////////////////////////////////////////////////////////*//
-
-    // keccak256("host.it.ticket")
-    bytes32 private constant HOST_IT_TICKET = 0x2d39ca42f70b8fb1aad3b6b712ac8513c31a927ee8719e6858dd209fe8ec8293;
-    uint256 private constant HOST_IT_FEE_NUMERATOR = 300; // 3% fee for HostIt
-    uint256 private constant HOST_IT_FEE_DENOMINATOR = 10e3; // 10000 (3% = 300 / 10000)
 
     //*//////////////////////////////////////////////////////////////////////////
     //                                   ROLES
