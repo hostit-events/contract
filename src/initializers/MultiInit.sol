@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 import {LibDiamond} from "@diamond/libraries/LibDiamond.sol";
-import {AddressAndCalldataLengthDoNotMatch} from "@diamond/libraries/constants/Errors.sol";
+import {AddressAndCalldataLengthDoNotMatch} from "@diamond/libraries/errors/DiamondErrors.sol";
 
 /// @notice Executes multiple initialization calls in sequence during a diamond upgrade
 /// @author David Dada

@@ -11,7 +11,7 @@ import {IDiamondCut} from "@diamond/interfaces/IDiamondCut.sol";
 import {LibDiamond} from "@diamond/libraries/LibDiamond.sol";
 import {LibOwnableRoles} from "@diamond/libraries/LibOwnableRoles.sol";
 import {LibDiamond} from "@diamond/libraries/LibDiamond.sol";
-import {FacetCutAction, FacetCut, DiamondArgs} from "@diamond/libraries/constants/Types.sol";
+import {FacetCutAction, FacetCut, DiamondArgs} from "@diamond/libraries/types/DiamondTypes.sol";
 import {HelperContract} from "@diamond-test/helpers/HelperContract.sol";
 
 /// @title DeployDiamond

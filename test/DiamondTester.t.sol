@@ -5,7 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {DeployDiamond} from "@diamond-script/DeployDiamond.s.sol";
 import {Diamond} from "@diamond/Diamond.sol";
 import {IDiamondLoupe} from "@diamond/interfaces/IDiamondLoupe.sol";
-import {Facet} from "@diamond/libraries/constants/Types.sol";
+import {Facet} from "@diamond/libraries/types/DiamondTypes.sol";
 import {DeployedDiamondState} from "./helpers/TestStates.sol";
 
 /// @title DiamondTester

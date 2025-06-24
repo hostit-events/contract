@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import {FacetCut, FacetCutAction} from "./constants/Types.sol";
-import {DiamondCut} from "./constants/Events.sol";
+import {FacetCut, FacetCutAction} from "@diamond/libraries/types/DiamondTypes.sol";
+import {DiamondCut} from "@diamond/libraries/logs/DiamondLogs.sol";
 import {
     CannotAddFunctionToDiamondThatAlreadyExists,
     CannotAddSelectorsToZeroAddress,
@@ -16,7 +16,7 @@ import {
     NoSelectorsGivenToAdd,
     NoSelectorsProvidedForFacetForCut,
     RemoveFacetAddressMustBeZeroAddress
-} from "./constants/Errors.sol";
+} from "@diamond/libraries/errors/DiamondErrors.sol";
 
 //*//////////////////////////////////////////////////////////////////////////
 //                           DIAMOND STORAGE TYPES

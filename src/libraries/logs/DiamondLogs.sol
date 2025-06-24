@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import {FacetCut} from "./Types.sol";
+import {FacetCut} from "@diamond/libraries/types/DiamondTypes.sol";
 
 //*//////////////////////////////////////////////////////////////////////////
 //                             DIAMOND CUT EVENT
