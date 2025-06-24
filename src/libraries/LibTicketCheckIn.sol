@@ -12,7 +12,8 @@ import {
     TicketUsePeriodHasEnded,
     NotTicketOwner,
     InvalidTicketId,
-    NoAdmins
+    NoAdmins,
+    InvalidAdminAddress
 } from "@host-it/libraries/errors/TicketErrors.sol";
 
 library LibTicketCheckIn {
@@ -20,7 +21,7 @@ library LibTicketCheckIn {
     using LibTicketFactory for uint256;
     using {LibOwnableRoles._checkRoles} for uint256;
     using {LibOwnableRoles._grantRoles} for address;
-    using {LibOwnableRoles._hasRoles} for address;
+    using {LibOwnableRoles._removeRoles} for address;
 
     //*//////////////////////////////////////////////////////////////////////////
     //                               VIEW FUNCTIONS
