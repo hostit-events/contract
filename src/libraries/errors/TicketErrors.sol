@@ -32,4 +32,7 @@ error InsufficientETHSent();
 error InsufficientBalance(FeeType feeType);
 error InsufficientAllowance(FeeType feeType);
 error PaymentFailed(FeeType feeType);
+error WithdrawFailed(FeeType feeType);
 error NotTicketOwner(uint256 tokenId);
+// Custom error for invalid token address
+error InvalidTokenAddress();

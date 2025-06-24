@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import {TicketStorage, LibTicketFactory} from "@host-it/libraries/LibTicketFactory.sol";
+import {LibTicketFactory} from "@host-it/libraries/LibTicketFactory.sol";
 import {TicketData, TicketMetadata, FeeType} from "@host-it/libraries/types/TicketTypes.sol";
 
 contract TicketFactoryFacet {
@@ -45,26 +45,6 @@ contract TicketFactoryFacet {
 
     function getTicketCheckInsByDay(uint256 _ticketId, uint16 _day, address _attendee) external view returns (bool) {
         return _ticketId._getTicketCheckInsByDay(_day, _attendee);
-    }
-
-    function getTicketFeeEnabled(uint256 _ticketId, FeeType _feeType) external view returns (bool) {
-        return _ticketId._getTicketFeeEnabled(_feeType);
-    }
-
-    function getTicketFee(uint256 _ticketId, FeeType _feeType) external view returns (uint256) {
-        return _ticketId._getTicketFee(_feeType);
-    }
-
-    function getFeeTokenAddress(FeeType _feeType) external view returns (address) {
-        return _feeType._getFeeTokenAddress();
-    }
-
-    function getTicketBalance(uint256 _ticketId, FeeType _feeType) external view returns (uint256) {
-        return _ticketId._getTicketBalance(_feeType);
-    }
-
-    function getHostItBalance(FeeType _feeType) external view returns (uint256) {
-        return _feeType._getHostItBalance();
     }
 
     //*//////////////////////////////////////////////////////////////////////////
@@ -119,12 +99,5 @@ contract TicketFactoryFacet {
         uint256 _maxTickets
     ) external payable {
         _ticketId._updateTicketMetadata(_name, _symbol, _uri, _startTime, _endTime, _purchaseStartTime, _maxTickets);
-    }
-
-    function updateTicketFee(uint256 _ticketId, bool _isFree, FeeType[] calldata _feeTypes, uint256[] calldata _fees)
-        external
-        payable
-    {
-        _ticketId._updateTicketFee(_isFree, _feeTypes, _fees);
     }
 }
