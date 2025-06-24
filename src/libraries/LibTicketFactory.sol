@@ -157,9 +157,9 @@ library LibTicketFactory {
     function _getAllTicketMetadata() internal view returns (TicketMetadata[] memory ticketMetadatas_) {
         uint256 count = _getTicketCount();
         ticketMetadatas_ = new TicketMetadata[](count);
-        for (uint256 i = 1; i < count;) {
+        for (uint256 i = 1; i <= count;) {
             // Ticket IDs start from 1
-            ticketMetadatas_[i] = i._getTicketMetadata();
+            ticketMetadatas_[i - 1] = i._getTicketMetadata();
             unchecked {
                 ++i;
             }
@@ -360,6 +360,9 @@ library LibTicketFactory {
         ticketData.purchaseStartTime = _purchaseStartTime;
         ticketData.maxTickets = _maxTickets;
 
+        // Persist the updated ticketData back to storage
+        _ticketStorage().tickets[_ticketId] = ticketData;
+
         TicketNFT ticketNFT = TicketNFT(ticketData.ticketNFTAddress);
         if (bytes(_name).length > 0 || bytes(_symbol).length > 0) ticketNFT.updateMetadata(_name, _symbol);
         if (bytes(_uri).length > 0) ticketNFT.setBaseURI(_uri);
@@ -393,6 +396,9 @@ library LibTicketFactory {
                 }
             }
         }
+
+        // Persist the updated ticketData back to storage
+        $.tickets[_ticketId] = ticketData;
 
         emit TicketUpdated(_ticketId, ticketData);
     }
@@ -439,10 +445,10 @@ library LibTicketFactory {
             $.ticketBalanceByChainId[_ticketId][_feeType][block.chainid] += fee;
             // Update the HostIt fee balance for the chain
             $.hostItBalanceByChainId[_feeType][block.chainid] += hostItFee;
-            emit TicketPurchased(_ticketId, ticketBuyer, _feeType, totalFee);
+            emit TicketPurchased(_ticketId, ticketBuyer, _feeType, fee);
         }
         tokenId_ = _mintTicket(ticketAddress, ticketBuyer);
-        ticketData.soldTickets = tokenId_;
+        $.tickets[_ticketId].soldTickets = tokenId_;
         emit TicketMinted(ticketAddress, ticketBuyer, tokenId_);
     }
 
