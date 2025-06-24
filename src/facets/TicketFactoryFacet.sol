@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import {TicketStorage, LibTicketFactory} from "@host-it/libraries/LibTicketFactory.sol";
+import {LibTicketFactory} from "@host-it/libraries/LibTicketFactory.sol";
 import {TicketData, TicketMetadata, FeeType} from "@host-it/libraries/types/TicketTypes.sol";
 
 contract TicketFactoryFacet {

@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 import {LibOwnableRoles} from "@diamond/libraries/LibOwnableRoles.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {LibTicketStorage, TicketStorage} from "@host-it/libraries/LibTicketStorage.sol";
 import {TicketData, TicketMetadata, FeeType} from "@host-it/libraries/types/TicketTypes.sol";
 import {
     TicketCreated,
@@ -43,45 +44,11 @@ import {
     NotTicketOwner
 } from "@host-it/libraries/errors/TicketErrors.sol";
 
-//*//////////////////////////////////////////////////////////////////////////
-//                           TICKET STORAGE STRUCT
-//////////////////////////////////////////////////////////////////////////*//
-
-/// @custom:storage-location erc7201:host.it.ticket.factory.storage
-struct TicketStorage {
-    uint256 ticketCount; // Total number of tickets created
-    mapping(uint256 => TicketData) tickets; // Mapping from ticketId to ticket data
-    mapping(address => uint256[]) allAdminTickets; // Mapping from organizer address to all ticket IDs they administer
-    mapping(uint256 => mapping(address => bool)) ticketCheckIns; // Mapping from ticketId to attendance by attendee address
-    mapping(uint256 => mapping(uint16 => mapping(address => bool))) ticketCheckInsByDay; // Mapping from ticketId and day to attendance by attendee address
-    mapping(uint256 => mapping(FeeType => bool)) ticketFeeEnabled; // Mapping from ticketId to ticket fee data
-    mapping(uint256 => mapping(FeeType => uint256)) ticketFee; // Mapping from ticketId to ticket fee amount
-    mapping(FeeType => mapping(uint256 => address)) feeTokenAddress; // Mapping from FeeType to ChainId to token address
-    mapping(uint256 => mapping(FeeType => mapping(uint256 => uint256))) ticketBalanceByChainId; // Mapping from ticketId to chainId to ticket fee balance
-    mapping(FeeType => mapping(uint256 => uint256)) hostItBalanceByChainId; // Mapping from FeeType to chainId to HostIt fee balance
-}
-
 library LibTicketFactory {
     using LibTicketFactory for *;
     using {LibOwnableRoles._grantRoles} for address;
     using {LibOwnableRoles._checkRoles} for uint256;
     using SafeERC20 for IERC20;
-
-    //*//////////////////////////////////////////////////////////////////////////
-    //                               TICKET STORAGE
-    //////////////////////////////////////////////////////////////////////////*//
-
-    // keccak256(abi.encode(uint256(keccak256("host.it.ticket.factory.storage")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant TICKET_STORAGE_POSITION =
-        0x610b7ed6689c503e651500bb8179583591f93afc835ec7dbed5872619168c100;
-
-    /// @dev Get the ticket storage.
-    function _ticketStorage() internal pure returns (TicketStorage storage $) {
-        bytes32 position = TICKET_STORAGE_POSITION;
-        assembly {
-            $.slot := position
-        }
-    }
 
     //*//////////////////////////////////////////////////////////////////////////
     //                                 CONSTANTS
@@ -107,7 +74,7 @@ library LibTicketFactory {
     //////////////////////////////////////////////////////////////////////////*//
 
     function _getTicketCount() internal view returns (uint256) {
-        return _ticketStorage().ticketCount;
+        return LibTicketStorage._ticketStorage().ticketCount;
     }
 
     function _ticketExists(uint256 _ticketId) internal view returns (bool) {
@@ -116,7 +83,7 @@ library LibTicketFactory {
 
     function _getTicketData(uint256 _ticketId) internal view returns (TicketData memory ticketData_) {
         require(_ticketExists(_ticketId), InvalidTicketId());
-        ticketData_ = _ticketStorage().tickets[_ticketId];
+        ticketData_ = LibTicketStorage._ticketStorage().tickets[_ticketId];
     }
 
     function _getTicketMetadata(uint256 _ticketId) internal view returns (TicketMetadata memory ticketMetadata_) {
@@ -155,7 +122,7 @@ library LibTicketFactory {
     }
 
     function _getAllAdminTicketIds(address _organizer) internal view returns (uint256[] memory adminTicketIds_) {
-        adminTicketIds_ = _ticketStorage().allAdminTickets[_organizer];
+        adminTicketIds_ = LibTicketStorage._ticketStorage().allAdminTickets[_organizer];
     }
 
     function _getAllAdminTicketMetadata(address _organizer)
@@ -193,31 +160,31 @@ library LibTicketFactory {
     }
 
     function _getTicketCheckIns(uint256 _ticketId, address _attendee) internal view returns (bool) {
-        return _ticketStorage().ticketCheckIns[_ticketId][_attendee];
+        return LibTicketStorage._ticketStorage().ticketCheckIns[_ticketId][_attendee];
     }
 
     function _getTicketCheckInsByDay(uint256 _ticketId, uint16 _day, address _attendee) internal view returns (bool) {
-        return _ticketStorage().ticketCheckInsByDay[_ticketId][_day][_attendee];
+        return LibTicketStorage._ticketStorage().ticketCheckInsByDay[_ticketId][_day][_attendee];
     }
 
     function _getTicketFeeEnabled(uint256 _ticketId, FeeType _feeType) internal view returns (bool) {
-        return _ticketStorage().ticketFeeEnabled[_ticketId][_feeType];
+        return LibTicketStorage._ticketStorage().ticketFeeEnabled[_ticketId][_feeType];
     }
 
     function _getTicketFee(uint256 _ticketId, FeeType _feeType) internal view returns (uint256) {
-        return _ticketStorage().ticketFee[_ticketId][_feeType];
+        return LibTicketStorage._ticketStorage().ticketFee[_ticketId][_feeType];
     }
 
     function _getFeeTokenAddress(FeeType _feeType) internal view returns (address) {
-        return _ticketStorage().feeTokenAddress[_feeType][block.chainid];
+        return LibTicketStorage._ticketStorage().feeTokenAddress[_feeType][block.chainid];
     }
 
     function _getTicketBalance(uint256 _ticketId, FeeType _feeType) internal view returns (uint256) {
-        return _ticketStorage().ticketBalanceByChainId[_ticketId][_feeType][block.chainid];
+        return LibTicketStorage._ticketStorage().ticketBalanceByChainId[_ticketId][_feeType][block.chainid];
     }
 
     function _getHostItBalance(FeeType _feeType) internal view returns (uint256) {
-        return _ticketStorage().hostItBalanceByChainId[_feeType][block.chainid];
+        return LibTicketStorage._ticketStorage().hostItBalanceByChainId[_feeType][block.chainid];
     }
 
     //*//////////////////////////////////////////////////////////////////////////
@@ -277,7 +244,7 @@ library LibTicketFactory {
         uint256 feeTypesLength = _feeTypes.length;
         if (!_isFree) require(feeTypesLength == _fees.length && feeTypesLength > 0, InvalidFeeConfig());
 
-        TicketStorage storage $ = _ticketStorage();
+        TicketStorage storage $ = LibTicketStorage._ticketStorage();
         uint256 ticketId = ++$.ticketCount;
         address ticketAdmin = msg.sender;
         ticketAdmin._grantRoles(ticketId._generateMainTicketAdminRole());
@@ -349,7 +316,7 @@ library LibTicketFactory {
         ticketData.maxTickets = _maxTickets;
 
         // Persist the updated ticketData back to storage
-        _ticketStorage().tickets[_ticketId] = ticketData;
+        LibTicketStorage._ticketStorage().tickets[_ticketId] = ticketData;
 
         TicketNFT ticketNFT = TicketNFT(ticketData.ticketNFTAddress);
         if (bytes(_name).length > 0 || bytes(_symbol).length > 0) ticketNFT.updateMetadata(_name, _symbol);
@@ -364,7 +331,7 @@ library LibTicketFactory {
         require(_ticketId._ticketExists(), InvalidTicketId());
         _ticketId._generateMainTicketAdminRole()._checkRoles();
 
-        TicketStorage storage $ = _ticketStorage();
+        TicketStorage storage $ = LibTicketStorage._ticketStorage();
         TicketData memory ticketData = _ticketId._getTicketData();
 
         ticketData.isFree = _isFree;
@@ -393,7 +360,7 @@ library LibTicketFactory {
 
     function _purchaseTicket(uint256 _ticketId, FeeType _feeType) internal returns (uint256 tokenId_) {
         require(_ticketId._ticketExists(), InvalidTicketId());
-        TicketStorage storage $ = _ticketStorage();
+        TicketStorage storage $ = LibTicketStorage._ticketStorage();
 
         TicketData memory ticketData = _ticketId._getTicketData();
 
@@ -444,7 +411,7 @@ library LibTicketFactory {
         require(_ticketId._ticketExists(), InvalidTicketId());
         _ticketId._generateTicketAdminRole()._checkRoles();
 
-        TicketStorage storage $ = _ticketStorage();
+        TicketStorage storage $ = LibTicketStorage._ticketStorage();
 
         TicketData memory ticketData = _ticketId._getTicketData();
         uint256 blockTimestamp = block.timestamp;
@@ -478,7 +445,7 @@ library LibTicketFactory {
         require(ticketData.endTime + 3 days < block.timestamp, TicketUseAndRefundPeriodHasNotEnded());
         uint256 balance = _ticketId._getTicketBalance(_feeType);
         require(balance > 0, InsufficientBalance(_feeType));
-        _ticketStorage().ticketBalanceByChainId[_ticketId][_feeType][block.chainid] = 0;
+        LibTicketStorage._ticketStorage().ticketBalanceByChainId[_ticketId][_feeType][block.chainid] = 0;
 
         if (_feeType == FeeType.ETH) {
             (bool success,) = address(payable(_to)).call{value: balance}("");
@@ -495,7 +462,7 @@ library LibTicketFactory {
     function _withdrawHostItBalance(FeeType _feeType, address _to) internal {
         LibOwnableRoles._checkOwner();
 
-        TicketStorage storage $ = _ticketStorage();
+        TicketStorage storage $ = LibTicketStorage._ticketStorage();
         uint256 balance = _feeType._getHostItBalance();
         require(balance > 0, InsufficientBalance(_feeType));
         $.hostItBalanceByChainId[_feeType][block.chainid] = 0;
@@ -524,6 +491,6 @@ library LibTicketFactory {
 
     function _setFeeTokenAddress(FeeType _feeType, address _tokenAddress) private {
         require(_tokenAddress != address(0), "Token address cannot be zero");
-        _ticketStorage().feeTokenAddress[_feeType][block.chainid] = _tokenAddress;
+        LibTicketStorage._ticketStorage().feeTokenAddress[_feeType][block.chainid] = _tokenAddress;
     }
 }
