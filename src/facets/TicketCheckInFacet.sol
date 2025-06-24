@@ -25,4 +25,12 @@ contract TicketCheckInFacet {
     function checkInTicket(uint256 _ticketId, address _ticketOwner, uint256 _tokenId) external payable {
         _ticketId._checkInTicket(_ticketOwner, _tokenId);
     }
+
+    function addTicketAdmins(uint256 _ticketId, address[] memory _admins) external payable {
+        _ticketId._addTicketAdmins(_admins);
+    }
+
+    function removeTicketAdmins(uint256 _ticketId, address[] memory _admins) external payable {
+        _ticketId._removeTicketAdmins(_admins);
+    }
 }

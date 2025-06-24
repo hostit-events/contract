@@ -11,13 +11,16 @@ import {
     TicketUsePeriodNotStarted,
     TicketUsePeriodHasEnded,
     NotTicketOwner,
-    InvalidTicketId
+    InvalidTicketId,
+    NoAdmins
 } from "@host-it/libraries/errors/TicketErrors.sol";
 
 library LibTicketCheckIn {
     using LibTicketCheckIn for uint256;
     using LibTicketFactory for uint256;
     using {LibOwnableRoles._checkRoles} for uint256;
+    using {LibOwnableRoles._grantRoles} for address;
+    using {LibOwnableRoles._hasRoles} for address;
 
     //*//////////////////////////////////////////////////////////////////////////
     //                               VIEW FUNCTIONS
@@ -63,5 +66,31 @@ library LibTicketCheckIn {
         }
 
         emit TicketCheckIn(_ticketId, _ticketOwner, blockTimestamp);
+    }
+
+    function _addTicketAdmins(uint256 _ticketId, address[] memory _admins) internal {
+        _ticketId._generateMainTicketAdminRole()._checkRoles();
+        uint256 adminsLength = _admins.length;
+        require(adminsLength > 0, NoAdmins());
+        for (uint256 i; i < adminsLength;) {
+            require(_admins[i] != address(0), InvalidAdminAddress());
+            _admins[i]._grantRoles(_ticketId._generateTicketAdminRole());
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function _removeTicketAdmins(uint256 _ticketId, address[] memory _admins) internal {
+        _ticketId._generateMainTicketAdminRole()._checkRoles();
+        uint256 adminsLength = _admins.length;
+        require(adminsLength > 0, NoAdmins());
+        for (uint256 i; i < adminsLength;) {
+            require(_admins[i] != address(0), InvalidAdminAddress());
+            _admins[i]._removeRoles(_ticketId._generateTicketAdminRole());
+            unchecked {
+                ++i;
+            }
+        }
     }
 }
