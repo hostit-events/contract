@@ -16,7 +16,7 @@ import {
 
 library LibTicketCheckIn {
     using LibTicketCheckIn for uint256;
-    using LibTicketFactory for *;
+    using LibTicketFactory for uint256;
     using {LibOwnableRoles._checkRoles} for uint256;
 
     //*//////////////////////////////////////////////////////////////////////////
