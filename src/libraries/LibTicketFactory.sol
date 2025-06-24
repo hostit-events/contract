@@ -2,58 +2,46 @@
 pragma solidity ^0.8.4;
 
 import {LibOwnableRoles} from "@diamond/libraries/LibOwnableRoles.sol";
-import {TicketData, TicketMetadata, FeeType} from "@host-it/libraries/constants/Types.sol";
-import {TicketNFT} from "@host-it/external/TicketNFT.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-//*//////////////////////////////////////////////////////////////////////////
-//                           TICKET FACTORY ERRORS
-//////////////////////////////////////////////////////////////////////////*//
-
-error InvalidTicketAmount();
-error FeeAlreadySet();
-error NameCannotBeEmpty();
-error SymbolCannotBeEmpty();
-error URICannotBeEmpty();
-error StartTimeMustBeInTheFuture();
-error EndTimeMustBeAfterStartTime();
-error PurchaseStartTimeMustBeBeforeStartTime();
-error MaxTicketsMustBeGreaterThanZero();
-error InvalidFeeConfig();
-error FeeMustBeGreaterThanZero();
-error TicketUseHasCommenced();
-error InvalidTicketId();
-error TicketPurchaseNotStarted();
-error TicketPurchasePeriodHasEnded();
-error TicketUsePeriodNotStarted();
-error TicketUsePeriodHasEnded();
-error TicketUseAndRefundPeriodHasNotEnded();
-error TicketAlreadyPurchased();
-error AllTicketsSoldOut();
-error FeeNotEnabledForThisPaymentMethod();
-error InsufficientETHSent();
-error InsufficientBalance(FeeType feeType);
-error InsufficientAllowance(FeeType feeType);
-error PaymentFailed(FeeType feeType);
-error NotTicketOwner(uint256 tokenId);
-error NotCheckedIn();
-
-//*//////////////////////////////////////////////////////////////////////////
-//                           TICKET FACTORY EVENTS
-//////////////////////////////////////////////////////////////////////////*//
-
-event TicketCreated(uint256 indexed ticketId, TicketData ticketData, address indexed ticketAdmin);
-
-event TicketUpdated(uint256 indexed ticketId, TicketData ticketData);
-
-event TicketPurchased(uint256 indexed ticketId, address indexed buyer, FeeType feeType, uint256 fee);
-
-event TicketMinted(address indexed ticketNFT, address indexed to, uint256 tokenId);
-
-event TicketCheckIn(uint256 indexed ticketId, address indexed ticketOwner, uint256 timestamp);
-
-event TicketBalanceWithdrawn(uint256 indexed ticketId, FeeType feeType, uint256 amount, address indexed target);
+import {TicketData, TicketMetadata, FeeType} from "@host-it/libraries/types/TicketTypes.sol";
+import {
+    TicketCreated,
+    TicketUpdated,
+    TicketPurchased,
+    TicketMinted,
+    TicketCheckIn,
+    TicketBalanceWithdrawn
+} from "@host-it/libraries/logs/TicketLogs.sol";
+import {TicketNFT} from "@host-it/external/TicketNFT.sol";
+import {
+    InvalidTicketAmount,
+    FeeAlreadySet,
+    NameCannotBeEmpty,
+    SymbolCannotBeEmpty,
+    URICannotBeEmpty,
+    StartTimeMustBeInTheFuture,
+    EndTimeMustBeAfterStartTime,
+    PurchaseStartTimeMustBeBeforeStartTime,
+    MaxTicketsMustBeGreaterThanZero,
+    InvalidFeeConfig,
+    FeeMustBeGreaterThanZero,
+    TicketUseHasCommenced,
+    InvalidTicketId,
+    TicketPurchaseNotStarted,
+    TicketPurchasePeriodHasEnded,
+    TicketUsePeriodNotStarted,
+    TicketUsePeriodHasEnded,
+    TicketUseAndRefundPeriodHasNotEnded,
+    TicketAlreadyPurchased,
+    AllTicketsSoldOut,
+    FeeNotEnabledForThisPaymentMethod,
+    InsufficientETHSent,
+    InsufficientBalance,
+    InsufficientAllowance,
+    PaymentFailed,
+    NotTicketOwner
+} from "@host-it/libraries/errors/TicketErrors.sol";
 
 //*//////////////////////////////////////////////////////////////////////////
 //                           TICKET STORAGE STRUCT

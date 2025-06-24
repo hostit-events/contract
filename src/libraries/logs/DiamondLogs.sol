@@ -1,11 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-<<<<<<<< HEAD:src/libraries/logs/DiamondLogs.sol
 import {FacetCut} from "@diamond/libraries/types/DiamondTypes.sol";
-========
-import {FacetCut, TicketData, FeeType} from "./Types.sol";
->>>>>>>> dev:src/libraries/constants/Logs.sol
 
 //*//////////////////////////////////////////////////////////////////////////
 //                            DIAMOND CUT EVENTS
