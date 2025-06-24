@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import {FacetCut} from "./Types.sol";
+import {FacetCut, TicketData, FeeType} from "./Types.sol";
 
 //*//////////////////////////////////////////////////////////////////////////
-//                             DIAMOND CUT EVENT
+//                            DIAMOND CUT EVENTS
 //////////////////////////////////////////////////////////////////////////*//
 
 /// @notice Emitted when a diamond cut (facet add/replace/remove) is executed.
