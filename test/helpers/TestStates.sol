@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 import {Test, console} from "forge-std/Test.sol";
-import {DeployDiamond} from "@diamond-script/DeployDiamond.s.sol";
+import {DeployHostIt} from "@diamond-script/DeployHostIt.s.sol";
 import {Diamond} from "@diamond/Diamond.sol";
 import {IDiamondCut} from "@diamond/interfaces/IDiamondCut.sol";
 import {IDiamondLoupe} from "@diamond/interfaces/IDiamondLoupe.sol";
@@ -15,7 +15,7 @@ abstract contract DeployedDiamondState is HelperContract {
     Diamond public diamond;
 
     /// @notice Script used to deploy the Diamond contract.
-    DeployDiamond public deployDiamond;
+    DeployHostIt public deployDiamond;
 
     /// @notice Interface for the DiamondCut functionality of the deployed diamond.
     IDiamondCut public diamondCut;
@@ -32,7 +32,7 @@ abstract contract DeployedDiamondState is HelperContract {
     /// @notice Deploys the Diamond contract and initializes interface references and facet addresses.
     /// @dev This function is intended to be called in a test setup phase (e.g., `setUp()` in Foundry).
     function setUp() public {
-        deployDiamond = new DeployDiamond();
+        deployDiamond = new DeployHostIt();
         diamond = deployDiamond.run();
 
         diamondCut = IDiamondCut(address(diamond));
