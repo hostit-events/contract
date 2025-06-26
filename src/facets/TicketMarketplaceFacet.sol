@@ -3,8 +3,9 @@ pragma solidity ^0.8.4;
 
 import {LibTicketMarketplace} from "@host-it/libraries/LibTicketMarketplace.sol";
 import {TicketData, TicketMetadata, FeeType} from "@host-it/libraries/types/TicketTypes.sol";
+import {ReentrancyGuardTransient} from "solady/utils/ReentrancyGuardTransient.sol";
 
-contract TicketMarketplaceFacet {
+contract TicketMarketplaceFacet is ReentrancyGuardTransient {
     using LibTicketMarketplace for *;
 
     //*//////////////////////////////////////////////////////////////////////////
@@ -46,11 +47,11 @@ contract TicketMarketplaceFacet {
         return _ticketId._purchaseTicket(_feeType);
     }
 
-    function withdrawTicketBalance(uint256 _ticketId, FeeType _feeType, address _to) external payable {
+    function withdrawTicketBalance(uint256 _ticketId, FeeType _feeType, address _to) external payable nonReentrant {
         _ticketId._withdrawTicketBalance(_feeType, _to);
     }
 
-    function withdrawHostItBalance(FeeType _feeType, address _to) external payable {
+    function withdrawHostItBalance(FeeType _feeType, address _to) external payable nonReentrant {
         _feeType._withdrawHostItBalance(_to);
     }
 }
