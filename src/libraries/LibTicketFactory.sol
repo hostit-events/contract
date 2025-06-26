@@ -32,7 +32,7 @@ import {
     EndTimeMustBeAfterStartTime,
     PurchaseStartTimeMustBeBeforeStartTime,
     MaxTicketsMustBeGreaterThanZero,
-    MaxTicketsMustBeLessThanTicketsSold,
+    MaxTicketsMustBeAtLeastTicketsSold,
     InvalidFeeConfig,
     FeeMustBeGreaterThanZero,
     TicketUseHasCommenced,
@@ -264,7 +264,7 @@ library LibTicketFactory {
         }
         TicketNFT ticketNFT = TicketNFT(ticketData.ticketNFTAddress);
         if (_maxTickets > 0) {
-            require(_maxTickets >= ticketNFT.totalSupply(), MaxTicketsMustBeLessThanTicketsSold());
+            require(_maxTickets >= ticketNFT.totalSupply(), MaxTicketsMustBeAtLeastTicketsSold());
             ticketData.maxTickets = _maxTickets;
         }
 
