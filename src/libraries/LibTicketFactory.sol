@@ -81,6 +81,7 @@ library LibTicketFactory {
             symbol: ticketNFT.symbol(),
             uri: ticketNFT.baseURI(),
             isFree: ticketData.isFree,
+            isUpdated: ticketData.isUpdated,
             createdAt: ticketData.createdAt,
             updatedAt: ticketData.updatedAt,
             startTime: ticketData.startTime,
@@ -200,6 +201,7 @@ library LibTicketFactory {
             ticketAdmin: ticketAdmin,
             ticketNFTAddress: address(ticketNFT),
             isFree: _isFree,
+            isUpdated: false,
             createdAt: block.timestamp,
             updatedAt: 0,
             startTime: _startTime,
@@ -250,6 +252,7 @@ library LibTicketFactory {
         if (_startTime > 0) {
             require(_startTime > block.timestamp, StartTimeMustBeInTheFuture());
             ticketData.startTime = _startTime;
+            ticketData.isUpdated = true; // Mark the ticket as updated if the start time is updated
         }
         if (_endTime > 0) {
             require(_endTime > _startTime + 1 days, EndTimeMustBeAfterStartTime());
@@ -267,7 +270,6 @@ library LibTicketFactory {
 
         ticketData.updatedAt = block.timestamp;
 
-        // Persist the updated ticketData back to storage
         LibTicketStorage._ticketStorage().tickets[_ticketId] = ticketData;
 
         if (bytes(_name).length > 0) ticketNFT.updateName(_name);
