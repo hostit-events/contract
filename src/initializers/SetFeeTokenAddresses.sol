@@ -5,7 +5,7 @@ import {TicketData, TicketMetadata, FeeType} from "@host-it/libraries/types/Tick
 import {LibTicketMarketplace} from "@host-it/libraries/LibTicketMarketplace.sol";
 
 contract SetFeeTokenAddresses {
-    using LibTicketMarketplace for *;
+    using LibTicketMarketplace for FeeType[];
     /// @notice Sets the fee token addresses for the ticket system.
     /// @param _feeTypes The array of fee types corresponding to the fee token addresses.
     /// @param _tokenAddresses The array of fee token addresses to set.
