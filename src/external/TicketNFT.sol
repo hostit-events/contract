@@ -22,12 +22,12 @@ event BaseURIUpdated(string indexed newBaseURI);
 /// @notice Emitted when the metadata of the NFT collection is updated
 /// @dev This event is emitted when the name of the NFT collection is changed
 /// @param newName The new name of the NFT collection
-event NameUpdated(string newName);
+event NameUpdated(string indexed newName);
 
 /// @notice Emitted when the metadata of the NFT collection is updated
 /// @dev This event is emitted when the symbol of the NFT collection is changed
 /// @param newSymbol The new symbol of the NFT collection
-event SymbolUpdated(string newSymbol);
+event SymbolUpdated(string indexed newSymbol);
 
 /// @title TicketNFT
 /// @notice NFT contract for event ticketing with royalty support, pausability, and metadata management
