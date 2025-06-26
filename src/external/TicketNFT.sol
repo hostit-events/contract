@@ -20,10 +20,14 @@ error WithdrawFailed();
 event BaseURIUpdated(string indexed newBaseURI);
 
 /// @notice Emitted when the metadata of the NFT collection is updated
-/// @dev This event is emitted when the name or symbol of the NFT collection is changed
+/// @dev This event is emitted when the name of the NFT collection is changed
 /// @param newName The new name of the NFT collection
+event NameUpdated(string indexed newName);
+
+/// @notice Emitted when the metadata of the NFT collection is updated
+/// @dev This event is emitted when the symbol of the NFT collection is changed
 /// @param newSymbol The new symbol of the NFT collection
-event MetadataUpdated(string newName, string newSymbol);
+event SymbolUpdated(string indexed newSymbol);
 
 /// @title TicketNFT
 /// @notice NFT contract for event ticketing with royalty support, pausability, and metadata management
@@ -94,15 +98,14 @@ contract TicketNFT is ERC721Enumerable, ERC721Royalty, Ownable, Pausable {
     //                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*//
 
-    function updateMetadata(string calldata __name, string calldata __symbol)
-        external
-        payable
-        onlyOwner
-        whenNotPaused
-    {
+    function updateName(string calldata __name) external payable onlyOwner whenNotPaused {
         _name = __name; // Update the name of the NFT collection
+        emit NameUpdated(__name);
+    }
+
+    function updateSymbol(string calldata __symbol) external payable onlyOwner whenNotPaused {
         _symbol = __symbol; // Update the symbol of the NFT collection
-        emit MetadataUpdated(__name, __symbol);
+        emit SymbolUpdated(__symbol);
     }
 
     /// @notice Allows the owner to set the base URI

@@ -16,6 +16,7 @@ error StartTimeMustBeInTheFuture();
 error EndTimeMustBeAfterStartTime();
 error PurchaseStartTimeMustBeBeforeStartTime();
 error MaxTicketsMustBeGreaterThanZero();
+error MaxTicketsMustBeAtLeastTicketsSold();
 error InvalidFeeConfig();
 error FeeMustBeGreaterThanZero();
 error TicketUseHasCommenced();
