@@ -151,15 +151,13 @@ library LibTicketMarketplace {
                 require(success, PaymentFailed(_feeType));
             } else {
                 // Handle ERC20 payment
-                address feeTokenAddress = _feeType._getFeeTokenAddress();
-                require(IERC20(feeTokenAddress).balanceOf(ticketBuyer) >= totalFee, InsufficientBalance(_feeType));
+                IERC20 feeTokenAddress = IERC20(_feeType._getFeeTokenAddress());
+                require(feeTokenAddress.balanceOf(ticketBuyer) >= totalFee, InsufficientBalance(_feeType));
                 require(
-                    IERC20(feeTokenAddress).allowance(ticketBuyer, address(this)) >= totalFee,
-                    InsufficientAllowance(_feeType)
+                    feeTokenAddress.allowance(ticketBuyer, address(this)) >= totalFee, InsufficientAllowance(_feeType)
                 );
                 require(
-                    IERC20(feeTokenAddress).trySafeTransferFrom(ticketBuyer, address(this), totalFee),
-                    PaymentFailed(_feeType)
+                    feeTokenAddress.trySafeTransferFrom(ticketBuyer, address(this), totalFee), PaymentFailed(_feeType)
                 );
             }
             // Update the ticket balance for the chain
