@@ -54,8 +54,7 @@ library LibTicketMarketplace {
     //////////////////////////////////////////////////////////////////////////*//
 
     function _getFeeTokenAddress(FeeType _feeType) internal view returns (address) {
-        TicketStorage storage $ = LibTicketStorage._ticketStorage();
-        address feeTokenAddress = $.feeTokenAddress[_feeType][block.chainid];
+        address feeTokenAddress = LibTicketStorage._ticketStorage().feeTokenAddress[_feeType][block.chainid];
         require(feeTokenAddress != address(0), InvalidTokenAddress());
         return feeTokenAddress;
     }
@@ -178,7 +177,7 @@ library LibTicketMarketplace {
         _ticketId._generateMainTicketAdminRole()._checkRoles();
 
         TicketData memory ticketData = _ticketId._getTicketData();
-        // 3 days refund period after the ticket end time
+        // refund period after the ticket end time
         require(ticketData.endTime + REFUND_PERIOD < block.timestamp, TicketUseAndRefundPeriodHasNotEnded());
         uint256 balance = _ticketId._getTicketBalance(_feeType);
         require(balance > 0, InsufficientBalance(_feeType));
@@ -199,10 +198,9 @@ library LibTicketMarketplace {
     function _withdrawHostItBalance(FeeType _feeType, address _to) internal {
         LibOwnableRoles._checkOwner();
 
-        TicketStorage storage $ = LibTicketStorage._ticketStorage();
         uint256 balance = _feeType._getHostItBalance();
         require(balance > 0, InsufficientBalance(_feeType));
-        $.hostItBalanceByChainId[_feeType][block.chainid] = 0;
+        LibTicketStorage._ticketStorage().hostItBalanceByChainId[_feeType][block.chainid] = 0;
 
         if (_feeType == FeeType.ETH) {
             (bool success,) = address(payable(_to)).call{value: balance}("");
