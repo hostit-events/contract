@@ -32,6 +32,7 @@ import {
     EndTimeMustBeAfterStartTime,
     PurchaseStartTimeMustBeBeforeStartTime,
     MaxTicketsMustBeGreaterThanZero,
+    MaxTicketsMustBeLessThanTicketsSold,
     InvalidFeeConfig,
     FeeMustBeGreaterThanZero,
     TicketUseHasCommenced,
@@ -246,22 +247,31 @@ library LibTicketFactory {
         TicketData memory ticketData = _ticketId._getTicketData();
 
         require(ticketData.startTime > block.timestamp, TicketUseHasCommenced());
-        require(_startTime > block.timestamp, StartTimeMustBeInTheFuture());
-        require(_endTime > _startTime + 1 days, EndTimeMustBeAfterStartTime());
-        require(_purchaseStartTime < _startTime, PurchaseStartTimeMustBeBeforeStartTime());
-        require(_maxTickets > 0, MaxTicketsMustBeGreaterThanZero());
+        if (_startTime > 0) {
+            require(_startTime > block.timestamp, StartTimeMustBeInTheFuture());
+            ticketData.startTime = _startTime;
+        }
+        if (_endTime > 0) {
+            require(_endTime > _startTime + 1 days, EndTimeMustBeAfterStartTime());
+            ticketData.endTime = _endTime;
+        }
+        if (_purchaseStartTime > 0) {
+            require(_purchaseStartTime < _startTime, PurchaseStartTimeMustBeBeforeStartTime());
+            ticketData.purchaseStartTime = _purchaseStartTime;
+        }
+        TicketNFT ticketNFT = TicketNFT(ticketData.ticketNFTAddress);
+        if (_maxTickets > 0) {
+            require(_maxTickets >= ticketNFT.totalSupply(), MaxTicketsMustBeLessThanTicketsSold());
+            ticketData.maxTickets = _maxTickets;
+        }
 
         ticketData.updatedAt = block.timestamp;
-        ticketData.startTime = _startTime;
-        ticketData.endTime = _endTime;
-        ticketData.purchaseStartTime = _purchaseStartTime;
-        ticketData.maxTickets = _maxTickets;
 
         // Persist the updated ticketData back to storage
         LibTicketStorage._ticketStorage().tickets[_ticketId] = ticketData;
 
-        TicketNFT ticketNFT = TicketNFT(ticketData.ticketNFTAddress);
-        if (bytes(_name).length > 0 || bytes(_symbol).length > 0) ticketNFT.updateMetadata(_name, _symbol);
+        if (bytes(_name).length > 0) ticketNFT.updateName(_name);
+        if (bytes(_symbol).length > 0) ticketNFT.updateSymbol(_symbol);
         if (bytes(_uri).length > 0) ticketNFT.setBaseURI(_uri);
 
         emit TicketUpdated(_ticketId, ticketData);
