@@ -8,13 +8,13 @@ library TokenAddresses {
     //                             MAINNET ADDRESSES
     //////////////////////////////////////////////////////////////////////////*//
 
-    function _getEthereumFeeTypes() internal pure returns (FeeType[] memory feeType_) {
-        feeType_ = new FeeType[](5);
-        feeType_[0] = FeeType.USDC;
-        feeType_[1] = FeeType.USDT;
-        feeType_[2] = FeeType.GHO;
-        feeType_[3] = FeeType.LINK;
-        feeType_[4] = FeeType.WETH;
+    function _getEthereumFeeTypes() internal pure returns (uint8[] memory feeType_) {
+        feeType_ = new uint8[](5);
+        feeType_[0] = uint8(FeeType.USDC);
+        feeType_[1] = uint8(FeeType.USDT);
+        feeType_[2] = uint8(FeeType.GHO);
+        feeType_[3] = uint8(FeeType.LINK);
+        feeType_[4] = uint8(FeeType.WETH);
     }
 
     function _getEtheremAddresses() internal pure returns (address[] memory addresses_) {
@@ -26,14 +26,14 @@ library TokenAddresses {
         addresses_[4] = ETH_WETH;
     }
 
-    function _getBaseFeeTypes() internal pure returns (FeeType[] memory feeType_) {
-        feeType_ = new FeeType[](6);
-        feeType_[0] = FeeType.USDC;
-        feeType_[1] = FeeType.USDT;
-        feeType_[2] = FeeType.GHO;
-        feeType_[3] = FeeType.LINK;
-        feeType_[4] = FeeType.WETH;
-        feeType_[5] = FeeType.EURC;
+    function _getBaseFeeTypes() internal pure returns (uint8[] memory feeType_) {
+        feeType_ = new uint8[](6);
+        feeType_[0] = uint8(FeeType.USDC);
+        feeType_[1] = uint8(FeeType.USDT);
+        feeType_[2] = uint8(FeeType.GHO);
+        feeType_[3] = uint8(FeeType.LINK);
+        feeType_[4] = uint8(FeeType.WETH);
+        feeType_[5] = uint8(FeeType.EURC);
     }
 
     function _getBaseAddresses() internal pure returns (address[] memory addresses_) {
@@ -46,12 +46,12 @@ library TokenAddresses {
         addresses_[5] = BASE_EURC;
     }
 
-    function _getAvalancheFeeTypes() internal pure returns (FeeType[] memory feeType_) {
-        feeType_ = new FeeType[](4);
-        feeType_[0] = FeeType.USDC;
-        feeType_[1] = FeeType.GHO;
-        feeType_[2] = FeeType.LINK;
-        feeType_[3] = FeeType.WETH;
+    function _getAvalancheFeeTypes() internal pure returns (uint8[] memory feeType_) {
+        feeType_ = new uint8[](4);
+        feeType_[0] = uint8(FeeType.USDC);
+        feeType_[1] = uint8(FeeType.GHO);
+        feeType_[2] = uint8(FeeType.LINK);
+        feeType_[3] = uint8(FeeType.WETH);
     }
 
     function _getAvalancheAddresses() internal pure returns (address[] memory addresses_) {
@@ -62,12 +62,12 @@ library TokenAddresses {
         addresses_[3] = AVALANCHE_WAVAX;
     }
 
-    function _getArbitrumOneFeeTypes() internal pure returns (FeeType[] memory feeType_) {
-        feeType_ = new FeeType[](4);
-        feeType_[0] = FeeType.USDC;
-        feeType_[1] = FeeType.GHO;
-        feeType_[2] = FeeType.LINK;
-        feeType_[3] = FeeType.WETH;
+    function _getArbitrumOneFeeTypes() internal pure returns (uint8[] memory feeType_) {
+        feeType_ = new uint8[](4);
+        feeType_[0] = uint8(FeeType.USDC);
+        feeType_[1] = uint8(FeeType.GHO);
+        feeType_[2] = uint8(FeeType.LINK);
+        feeType_[3] = uint8(FeeType.WETH);
     }
 
     function _getArbitrumOneAddresses() internal pure returns (address[] memory addresses_) {
@@ -78,14 +78,14 @@ library TokenAddresses {
         addresses_[3] = ARBITRUM_ONE_WETH;
     }
 
-    function _getLiskFeeTypes() internal pure returns (FeeType[] memory feeType_) {
-        feeType_ = new FeeType[](6);
-        feeType_[0] = FeeType.USDC;
-        feeType_[1] = FeeType.USDT;
-        feeType_[2] = FeeType.EURC;
-        feeType_[3] = FeeType.LSK;
-        feeType_[4] = FeeType.LINK;
-        feeType_[5] = FeeType.USDT0;
+    function _getLiskFeeTypes() internal pure returns (uint8[] memory feeType_) {
+        feeType_ = new uint8[](6);
+        feeType_[0] = uint8(FeeType.USDC);
+        feeType_[1] = uint8(FeeType.USDT);
+        feeType_[2] = uint8(FeeType.EURC);
+        feeType_[3] = uint8(FeeType.LSK);
+        feeType_[4] = uint8(FeeType.LINK);
+        feeType_[5] = uint8(FeeType.USDT0);
     }
 
     function _getLiskAddresses() internal pure returns (address[] memory addresses_) {
@@ -102,11 +102,11 @@ library TokenAddresses {
     //                             TESTNET ADDRESSES
     //////////////////////////////////////////////////////////////////////////*//
 
-    function _getEthereumSepoliaFeeTypes() internal pure returns (FeeType[] memory feeType_) {
-        feeType_ = new FeeType[](3);
-        feeType_[0] = FeeType.USDC;
-        feeType_[1] = FeeType.LINK;
-        feeType_[2] = FeeType.WETH;
+    function _getEthereumSepoliaFeeTypes() internal pure returns (uint8[] memory feeType_) {
+        feeType_ = new uint8[](3);
+        feeType_[0] = uint8(FeeType.USDC);
+        feeType_[1] = uint8(FeeType.LINK);
+        feeType_[2] = uint8(FeeType.WETH);
     }
 
     function _getEthereumSepoliaAddresses() internal pure returns (address[] memory addresses_) {
@@ -116,13 +116,13 @@ library TokenAddresses {
         addresses_[2] = ETH_SEPOLIA_WETH;
     }
 
-    function _getBaseSepoliaFeeTypes() internal pure returns (FeeType[] memory feeType_) {
-        feeType_ = new FeeType[](5);
-        feeType_[0] = FeeType.USDC;
-        feeType_[1] = FeeType.USDT;
-        feeType_[2] = FeeType.LINK;
-        feeType_[3] = FeeType.WETH;
-        feeType_[4] = FeeType.EURC;
+    function _getBaseSepoliaFeeTypes() internal pure returns (uint8[] memory feeType_) {
+        feeType_ = new uint8[](5);
+        feeType_[0] = uint8(FeeType.USDC);
+        feeType_[1] = uint8(FeeType.USDT);
+        feeType_[2] = uint8(FeeType.LINK);
+        feeType_[3] = uint8(FeeType.WETH);
+        feeType_[4] = uint8(FeeType.EURC);
     }
 
     function _getBaseSepoliaAddresses() internal pure returns (address[] memory addresses_) {
@@ -134,11 +134,11 @@ library TokenAddresses {
         addresses_[4] = BASE_SEPOLIA_EURC;
     }
 
-    function _getAvalancheFujiFeeTypes() internal pure returns (FeeType[] memory feeType_) {
-        feeType_ = new FeeType[](3);
-        feeType_[0] = FeeType.USDC;
-        feeType_[1] = FeeType.LINK;
-        feeType_[2] = FeeType.WETH;
+    function _getAvalancheFujiFeeTypes() internal pure returns (uint8[] memory feeType_) {
+        feeType_ = new uint8[](3);
+        feeType_[0] = uint8(FeeType.USDC);
+        feeType_[1] = uint8(FeeType.LINK);
+        feeType_[2] = uint8(FeeType.WETH);
     }
 
     function _getAvalancheFujiAddresses() internal pure returns (address[] memory addresses_) {
@@ -148,11 +148,11 @@ library TokenAddresses {
         addresses_[2] = AVALANCHE_FUJI_WAVAX;
     }
 
-    function _getArbitrumSepoliaFeeTypes() internal pure returns (FeeType[] memory feeType_) {
-        feeType_ = new FeeType[](3);
-        feeType_[0] = FeeType.USDC;
-        feeType_[1] = FeeType.LINK;
-        feeType_[2] = FeeType.WETH;
+    function _getArbitrumSepoliaFeeTypes() internal pure returns (uint8[] memory feeType_) {
+        feeType_ = new uint8[](3);
+        feeType_[0] = uint8(FeeType.USDC);
+        feeType_[1] = uint8(FeeType.LINK);
+        feeType_[2] = uint8(FeeType.WETH);
     }
 
     function _getArbitrumSepoliaAddresses() internal pure returns (address[] memory addresses_) {
@@ -162,12 +162,12 @@ library TokenAddresses {
         addresses_[2] = ARBITRUM_SEPOLIA_WETH;
     }
 
-    function _getLiskSepoliaFeeTypes() internal pure returns (FeeType[] memory feeType_) {
-        feeType_ = new FeeType[](4);
-        feeType_[0] = FeeType.USDC;
-        feeType_[1] = FeeType.LINK;
-        feeType_[2] = FeeType.WETH;
-        feeType_[3] = FeeType.LSK;
+    function _getLiskSepoliaFeeTypes() internal pure returns (uint8[] memory feeType_) {
+        feeType_ = new uint8[](4);
+        feeType_[0] = uint8(FeeType.USDC);
+        feeType_[1] = uint8(FeeType.LINK);
+        feeType_[2] = uint8(FeeType.WETH);
+        feeType_[3] = uint8(FeeType.LSK);
     }
 
     function _getLiskSepoliaAddresses() internal pure returns (address[] memory addresses_) {
