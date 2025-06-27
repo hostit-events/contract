@@ -80,7 +80,7 @@ library LibTicketMarketplace {
     //////////////////////////////////////////////////////////////////////////*//
 
     function _setFeeTokenAddresses(FeeType[] calldata _feeTypes, address[] calldata _tokenAddresses) internal {
-        LibOwnableRoles._checkOwner();
+        // LibOwnableRoles._checkOwner();
         uint256 feeTypesLength = _feeTypes.length;
         require(feeTypesLength == _tokenAddresses.length && feeTypesLength > 0, InvalidFeeConfig());
         for (uint256 i; i < feeTypesLength;) {
