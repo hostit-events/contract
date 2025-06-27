@@ -40,9 +40,12 @@ struct TicketMetadata {
 
 enum FeeType {
     ETH,
+    WETH,
     USDT,
     USDC,
-    LSK,
     EURC,
-    USDT0
+    USDT0,
+    GHO,
+    LINK,
+    LSK
 }
