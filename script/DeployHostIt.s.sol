@@ -18,7 +18,7 @@ import {TicketFactoryFacet} from "@host-it/facets/TicketFactoryFacet.sol";
 import {TicketCheckInFacet} from "@host-it/facets/TicketCheckInFacet.sol";
 import {TicketMarketplaceFacet} from "@host-it/facets/TicketMarketplaceFacet.sol";
 import {TicketData, TicketMetadata, FeeType} from "@host-it/libraries/types/TicketTypes.sol";
-import "@host-it/libraries/constants/TokenAddresses.sol";
+import {TokenAddresses} from "@host-it/libraries/constants/TokenAddresses.sol";
 
 /// @title DeployDiamond
 /// @notice Deployment script for an EIP-2535 Diamond proxy contract with core facets and ERC165 initialization
@@ -67,15 +67,9 @@ contract DeployHostIt is Script, HelperContract {
         initAddr[0] = address(erc165Init);
         initData[0] = abi.encodeWithSignature("initERC165()");
 
-        uint8[] memory feeTypes = new uint8[](3);
-        feeTypes[0] = uint8(FeeType.USDC);
-        feeTypes[1] = uint8(FeeType.EURC);
-        feeTypes[2] = uint8(FeeType.USDT);
+        uint8[] memory feeTypes = TokenAddresses._getBaseSepoliaFeeTypes();
 
-        address[] memory feeTokenAddresses = new address[](3);
-        feeTokenAddresses[0] = BASE_SEPOLIA_USDC_ADDRESS;
-        feeTokenAddresses[1] = BASE_SEPOLIA_EURC_ADDRESS;
-        feeTokenAddresses[2] = BASE_SEPOLIA_USDT_ADDRESS;
+        address[] memory feeTokenAddresses = TokenAddresses._getBaseSepoliaAddresses();
 
         initAddr[1] = address(setFeeTokenAddresses);
         initData[1] = abi.encodeWithSignature("setFeeTokenAddresses(uint8[],address[])", feeTypes, feeTokenAddresses);
