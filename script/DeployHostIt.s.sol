@@ -40,9 +40,11 @@ contract DeployHostIt is Script, HelperContract {
     /// @dev Broadcasts transactions using Foundry's scripting environment (`vm.startBroadcast()` and `vm.stopBroadcast()`).
     ///      Deploys three core facets, sets up DiamondArgs, encodes an initializer call, and constructs the Diamond.
     /// @return diamond_ The address of the deployed Diamond proxy contract
-    function run() external returns (HostIt diamond_) {
-        vm.createSelectFork("base-sepolia");
-        vm.startBroadcast();
+    function run(uint8[] calldata _feeTypes, address[] calldata _feeTokenAddresses)
+        external
+        returns (HostIt diamond_)
+    {
+        // vm.startBroadcast();
 
         // Deploy facet contracts
         diamondCutFacet = new DiamondCutFacet();
@@ -67,12 +69,8 @@ contract DeployHostIt is Script, HelperContract {
         initAddr[0] = address(erc165Init);
         initData[0] = abi.encodeWithSignature("initERC165()");
 
-        uint8[] memory feeTypes = TokenAddresses._getBaseSepoliaFeeTypes();
-
-        address[] memory feeTokenAddresses = TokenAddresses._getBaseSepoliaAddresses();
-
         initAddr[1] = address(setFeeTokenAddresses);
-        initData[1] = abi.encodeWithSignature("setFeeTokenAddresses(uint8[],address[])", feeTypes, feeTokenAddresses);
+        initData[1] = abi.encodeWithSignature("setFeeTokenAddresses(uint8[],address[])", _feeTypes, _feeTokenAddresses);
 
         // Prepare DiamondArgs: owner and init data
         DiamondArgs memory args = DiamondArgs({
@@ -128,8 +126,62 @@ contract DeployHostIt is Script, HelperContract {
 
         // Deploy the Diamond contract with the facets and initialization args
         diamond_ = new HostIt(cut, args);
-        console.log("HostIt deployed at:", address(diamond_));
 
+        // vm.stopBroadcast();
+    }
+}
+
+contract DeployMultiTestnet is Script {
+    DeployHostIt deployHostIt;
+
+    function run() external {
+        // deployHostIt = new DeployHostIt();
+        uint8[] memory baseSepoliaFeeTypes = TokenAddresses._getBaseSepoliaFeeTypes();
+        address[] memory baseSepoliaAddresses = TokenAddresses._getBaseSepoliaAddresses();
+
+        vm.createSelectFork("base-sepolia");
+        DeployHostIt deployHostItBaseSep = new DeployHostIt();
+        vm.startBroadcast();
+        HostIt hostItBaseSepolia = deployHostItBaseSep.run(baseSepoliaFeeTypes, baseSepoliaAddresses);
+        console.log("======================================================================================");
+        console.log("HostIt deployed on Base Sepolia at:", address(hostItBaseSepolia));
+        console.log("======================================================================================");
+        vm.stopBroadcast();
+
+        uint8[] memory liskSepoliaFeeTypes = TokenAddresses._getLiskSepoliaFeeTypes();
+        address[] memory liskSepoliaAddresses = TokenAddresses._getLiskSepoliaAddresses();
+
+        vm.createSelectFork("lisk-sepolia");
+        DeployHostIt deployHostItLiskSep = new DeployHostIt();
+        vm.startBroadcast();
+        HostIt hostItLiskSepolia = deployHostItLiskSep.run(liskSepoliaFeeTypes, liskSepoliaAddresses);
+        console.log("======================================================================================");
+        console.log("HostIt deployed on Lisk Sepolia at:", address(hostItLiskSepolia));
+        console.log("======================================================================================");
+        vm.stopBroadcast();
+
+        uint8[] memory arbitrumSepoliaFeeTypes = TokenAddresses._getArbitrumSepoliaFeeTypes();
+        address[] memory arbitrumSepoliaAddresses = TokenAddresses._getArbitrumSepoliaAddresses();
+
+        vm.createSelectFork("arbitrum-sepolia");
+        DeployHostIt deployHostItArbSep = new DeployHostIt();
+        vm.startBroadcast();
+        HostIt hostItArbitrumSepolia = deployHostItArbSep.run(arbitrumSepoliaFeeTypes, arbitrumSepoliaAddresses);
+        console.log("======================================================================================");
+        console.log("HostIt deployed on Arbitrum Sepolia at:", address(hostItArbitrumSepolia));
+        console.log("======================================================================================");
+        vm.stopBroadcast();
+
+        uint8[] memory avalancheFujiFeeTypes = TokenAddresses._getAvalancheFujiFeeTypes();
+        address[] memory avalancheFujiAddresses = TokenAddresses._getAvalancheFujiAddresses();
+
+        vm.createSelectFork("avalanche-fuji");
+        DeployHostIt deployHostItAvaxFuji = new DeployHostIt();
+        vm.startBroadcast();
+        HostIt hostItAvalancheFuji = deployHostItAvaxFuji.run(avalancheFujiFeeTypes, avalancheFujiAddresses);
+        console.log("======================================================================================");
+        console.log("HostIt deployed on Avalanche Fuji at:", address(hostItAvalancheFuji));
+        console.log("======================================================================================");
         vm.stopBroadcast();
     }
 }
